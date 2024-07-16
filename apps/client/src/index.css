@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: Montserrat;
+  background-color: #302e2b;
+  height: 100%;
+}
+
+body {
+  padding: 5rem;
+  height: 100%;
+}
