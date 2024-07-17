@@ -1,5 +1,5 @@
-import { ChessBoard } from "../components/ChessBoard";
-import { Button } from "../components/Button";
+import { ChessBoard } from "../components/chessboard";
+import { Button } from "../components/button";
 import { useSocket } from "../hooks/useSocket";
 import { GAME_OVER, INIT_GAME, MOVE } from "../constants/messages";
 import { useEffect, useState } from "react";

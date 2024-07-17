@@ -1,8 +1,10 @@
 import { useNavigate } from "react-router-dom";
-import { Button } from "../components/Button";
+import { Button } from "../components/button";
+import { useAuth } from "../context/authContext";
 
 export const Landing = () => {
   const navigate = useNavigate();
+  const { isLoggedIn, login, isUserLoading } = useAuth();
 
   return (
     <div className="grid grid-cols-3 w-full lg:w-4/5 mx-auto gap-y-10 lg:gap-y-0 items-center">
@@ -20,6 +22,9 @@ export const Landing = () => {
           label="Play Online"
           onClick={() => navigate("/game", { replace: true })}
         />
+        {!isLoggedIn && !isUserLoading && (
+          <Button label="Login With Google" onClick={login} />
+        )}
       </div>
     </div>
   );
