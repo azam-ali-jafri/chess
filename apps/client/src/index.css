@@ -11,3 +11,34 @@
 body {
   height: 100%;
 }
+
+/* Define scrollbar color */
+:root {
+  --scrollbar-color: #272727;
+}
+
+/* Style the scrollbar */
+/* WebKit */
+*::-webkit-scrollbar {
+  width: 8px; /* Width of the scrollbar */
+  height: 8px; /* Height of the horizontal scrollbar */
+  border-radius: 8px; /* Make scrollbar rounded */
+}
+
+*::-webkit-scrollbar-track {
+  background: none; /* Background of the track */
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-color); /* Color of the thumb */
+  border-radius: 8px; /* Make thumb rounded */
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin; /* For Firefox */
+}
+
+* {
+  scrollbar-color: var(--scrollbar-color) transparent; /* For Firefox */
+}

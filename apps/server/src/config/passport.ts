@@ -3,7 +3,6 @@ import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { Strategy as JwtStrategy, ExtractJwt } from "passport-jwt";
 import dotenv from "dotenv";
 import { db } from "../db";
-import { User } from "@prisma/client";
 
 dotenv.config();
 
@@ -15,16 +14,21 @@ passport.use(
       callbackURL: process.env.CALLBACK_URL,
     },
     async (accessToken, refreshToken, profile, done) => {
-      let user = await db.user.findFirst({ where: { googleId: profile?.id } });
-      if (!user) {
-        user = await db.user.create({
-          data: {
-            googleId: profile.id,
-            name: profile.displayName,
-            email: profile.emails![0].value,
-          },
-        });
-      }
+      const user = await db.user.upsert({
+        create: {
+          email: profile.emails![0].value,
+          name: profile.displayName,
+          googleId: profile?.id,
+          displayPicture: profile?.photos![0].value,
+        },
+        update: {
+          name: profile.displayName,
+        },
+        where: {
+          email: profile.emails![0].value,
+        },
+      });
+
       return done(null, user);
     }
   )

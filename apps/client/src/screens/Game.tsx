@@ -9,7 +9,7 @@ export const Game = () => {
   const socket = useSocket();
   const [chess, setChess] = useState(new Chess());
   const [board, setBoard] = useState(chess.board());
-  const moveSound = new Audio("/sounds/move.mp3"); // Path to your sound file
+  const moveSound = new Audio("/sounds/move.mp3");
   const [started, setStarted] = useState(false);
   const [playerColor, setPlayerColor] = useState<"black" | "white" | null>(
     null
@@ -20,10 +20,9 @@ export const Game = () => {
 
     socket.onmessage = (event) => {
       const message = JSON.parse(event.data);
-      console.log(message);
+
       switch (message.type) {
         case INIT_GAME: {
-          console.log("game initialized");
           setPlayerColor(message?.color);
           setChess(new Chess());
           setBoard(chess.board());
@@ -34,8 +33,7 @@ export const Game = () => {
           const move = message.payload;
           chess.move(move);
           setBoard(chess.board());
-          console.log("move made");
-          moveSound.play(); // Play the move sound
+          moveSound.play();
           break;
         }
         case GAME_OVER: {

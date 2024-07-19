@@ -33,7 +33,7 @@ export const googleAuthCallback = (req: Request, res: Response, next: any) => {
 
 export const logout = (req: Request, res: Response) => {
   res.clearCookie("jwt");
-  res.redirect(process.env.CLIENT_URL as string);
+  res.json({ success: true });
 };
 
 export const getProfile = (req: Request, res: Response) => {

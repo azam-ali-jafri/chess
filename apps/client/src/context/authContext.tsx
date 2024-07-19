@@ -1,12 +1,11 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { User } from "@prisma/client";
-import axiosInstance from "../lib/axiosInstance";
 import axios from "axios";
 
 type AuthContextType = {
   user: User | null;
-  isLoggedIn: boolean;
+  isAuthenticated: boolean;
   login: () => void;
   logout: () => void;
   isUserLoading: boolean;
@@ -17,6 +16,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isUserLoading, setIsUserLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
     checkLoggedIn();
@@ -25,10 +25,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const checkLoggedIn = async () => {
     try {
       const response = await axios.get("/api/user/info");
-
-      console.log(response.data.user);
-
-      setUser(response.data);
+      setUser(response.data.user);
+      setIsAuthenticated(true);
     } catch (error) {
       setUser(null);
     } finally {
@@ -41,15 +39,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const logout = async () => {
-    await axiosInstance.get("/api/logout");
-    setUser(null);
+    try {
+      await axios.get("/api/logout");
+      setUser(null);
+      setIsAuthenticated(false);
+    } catch (error) {
+      console.log(error);
+    }
   };
-
-  const isLoggedIn = !!user;
 
   return (
     <AuthContext.Provider
-      value={{ user, isLoggedIn, login, logout, isUserLoading }}
+      value={{ user, isAuthenticated, login, logout, isUserLoading }}
     >
       {children}
     </AuthContext.Provider>
