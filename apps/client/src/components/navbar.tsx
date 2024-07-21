@@ -1,14 +1,13 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/authContext";
-import { primaryButtonStyles } from "./button";
 import { Loader, User } from "lucide-react";
+import { Button } from "./ui/button";
 
 const Navbar = () => {
   const { isAuthenticated, isUserLoading, login, user, logout } = useAuth();
-  console.log(user?.displayPicture);
 
   return (
-    <nav className="bg-[#262522] py-4 px-4 md:px-8 lg:px-14 mb-10 h-[4rem]">
+    <nav className="bg-primary py-4 px-4 md:px-8 lg:px-14 mb-10 h-[4.5rem] border-b-2 border-[#739552]">
       <div className="container mx-auto flex justify-between items-center">
         <Link to="/" className="text-white font-bold text-xl">
           Chess
@@ -34,22 +33,22 @@ const Navbar = () => {
                       <User className="text-white" />
                     )}
                   </div>
-                  <button
-                    className={`${primaryButtonStyles} text-sm py-2 px-4 border-b-2`}
-                    onClick={logout}
+                  <Button
+                    variant={"secondary"}
                     disabled={isUserLoading}
+                    onClick={logout}
                   >
                     Logout
-                  </button>
+                  </Button>
                 </div>
               ) : (
-                <button
-                  className={`${primaryButtonStyles} text-sm py-2 px-4 border-b-2`}
-                  onClick={login}
+                <Button
+                  variant={"secondary"}
                   disabled={isUserLoading}
+                  onClick={login}
                 >
                   Login
-                </button>
+                </Button>
               )}
             </>
           )}

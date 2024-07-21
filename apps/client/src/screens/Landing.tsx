@@ -1,13 +1,34 @@
+import { Button } from "@/components/ui/button";
+import { INIT_GAME } from "@/constants/messages";
+import { useAuth } from "@/context/authContext";
+import { useSocket } from "@/hooks/useSocket";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "../components/button";
 
 export const Landing = () => {
+  const [isFinding, setIsFinding] = useState(false);
+  const socket = useSocket();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
-  const handlePlay = () => {};
+  const handlePlay = () => {
+    setIsFinding(true);
+    socket?.send(JSON.stringify({ type: INIT_GAME, playerId: user?.id }));
+  };
+
+  useEffect(() => {
+    if (socket) {
+      socket.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        console.log(message);
+
+        if (message.type == INIT_GAME) navigate(`/game/${message?.gameId}`);
+      };
+    }
+  }, [navigate, socket]);
 
   return (
-    <div className="grid grid-cols-3 w-full lg:w-4/5 mx-auto gap-y-10 lg:gap-y-0 items-center pb-10">
+    <div className="grid grid-cols-3 w-full lg:w-4/5 mx-auto gap-y-10 lg:gap-y-0 items-center pb-10 px-5">
       <div className="relative w-full col-span-3 lg:col-span-2 flex justify-center">
         <img
           src={"/board.png"}
@@ -15,10 +36,20 @@ export const Landing = () => {
         />
       </div>
       <div className="flex flex-col gap-6 col-span-3 lg:col-span-1">
-        <h1 className="font-bold text-2xl md:text-4xl lg:text-4xl xl:text-5xl text-white leading-7 lg:leading-[3rem] text-center">
+        <h1 className="font-bold text-2xl md:text-4xl lg:text-4xl xl:text-5xl text-white text-center">
           Play Chess Online
         </h1>
-        <Button label="Play Online" onClick={handlePlay} />
+        <Button
+          variant={"secondary"}
+          onClick={handlePlay}
+          size={"lg"}
+          className="text-xl font-semibold py-7"
+          loadingText="Searching"
+          isLoading={isFinding}
+          disabled={isFinding}
+        >
+          Play Online
+        </Button>
       </div>
     </div>
   );

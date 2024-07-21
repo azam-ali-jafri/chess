@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "dev": "esbuild ./src/index.ts --bundle --platform=node --outfile=dist/index.js --sourcemap && node dist/index.js",
+    "dev": "nodemon --watch src --ext ts --exec \"esbuild ./src/index.ts --bundle --platform=node --outfile=dist/index.js --sourcemap && node dist/index.js\"",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint --fix ."
   },

@@ -5,15 +5,15 @@ import Navbar from "./components/navbar";
 
 const App = () => {
   return (
-    <>
+    <div className="bg-primary h-full">
       <BrowserRouter>
         <Navbar />
         <Routes>
           <Route path="/" element={<Landing />} />
-          <Route path="/game" element={<Game />} />
+          <Route path="/game/:gameId" element={<Game />} />
         </Routes>
       </BrowserRouter>
-    </>
+    </div>
   );
 };
 
