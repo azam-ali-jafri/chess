@@ -26,6 +26,7 @@ export class GameManager {
   private addHandler(socket: WebSocket) {
     socket.on("message", (data) => {
       const message = JSON.parse(data.toString());
+      console.log("game manager message: ", message);
 
       if (message.type === INIT_GAME) {
         const user = new User(socket, message.playerId);
@@ -33,22 +34,26 @@ export class GameManager {
         if (this.pendingUser) {
           const newgame = new Game(this.pendingUser, user);
           this.games.push(newgame);
+
           this.pendingUser = null;
         } else {
           this.pendingUser = user;
         }
       }
 
-      // if (message.type === MOVE) {
-      //   const game = this.games.find(
-      //     (game) =>
-      //       game.whitePlayer.playerId === user.playerId ||
-      //       game.blackPlayer.playerId === user.playerId
-      //   );
-      //   if (game) {
-      //     game.makeMove(user.userSocket, message.move);
-      //   }
-      // }
+      if (message.type === MOVE) {
+        const game = this.games.find(
+          (game) =>
+            game.whitePlayer.playerId === message.playerId ||
+            game.blackPlayer.playerId === message.playerId
+        );
+
+        console.log(game?.id);
+
+        if (game) {
+          game.makeMove(message.move);
+        }
+      }
     });
   }
 }

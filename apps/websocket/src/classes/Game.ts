@@ -26,7 +26,7 @@ export class Game {
     );
   }
 
-  makeMove(socket: WebSocket, move: { from: string; to: string }) {
+  makeMove(move: { from: string; to: string }) {
     try {
       this.board.move(move);
     } catch (error) {

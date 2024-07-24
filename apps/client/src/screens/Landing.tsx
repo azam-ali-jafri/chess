@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { INIT_GAME } from "@/constants/messages";
 import { useAuth } from "@/context/authContext";
-import { useSocket } from "@/hooks/useSocket";
+import { useSocket } from "@/context/socketContext";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -12,6 +12,8 @@ export const Landing = () => {
   const { user } = useAuth();
 
   const handlePlay = () => {
+    console.log(socket);
+
     setIsFinding(true);
     socket?.send(JSON.stringify({ type: INIT_GAME, playerId: user?.id }));
   };
@@ -22,7 +24,10 @@ export const Landing = () => {
         const message = JSON.parse(event.data);
         console.log(message);
 
-        if (message.type == INIT_GAME) navigate(`/game/${message?.gameId}`);
+        if (message.type == INIT_GAME) {
+          localStorage.setItem("color", message.color);
+          navigate(`/game/${message?.gameId}`);
+        }
       };
     }
   }, [navigate, socket]);

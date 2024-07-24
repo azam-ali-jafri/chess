@@ -1,6 +1,7 @@
 import { Color, PieceSymbol, Square } from "chess.js";
 import { useState } from "react";
 import { MOVE } from "../constants/messages";
+import { useAuth } from "@/context/authContext";
 
 const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
 const ranks = ["1", "2", "3", "4", "5", "6", "7", "8"];
@@ -17,10 +18,11 @@ export const ChessBoard = ({
   playerColor,
 }: {
   board: (SquarePresentation | null)[][];
-  socket: WebSocket | null;
+  socket: WebSocket;
   playerColor: "black" | "white" | null;
 }) => {
   const [from, setFrom] = useState<Square | null>(null);
+  const { user } = useAuth();
 
   const handleSquareClick = (
     i: number,
@@ -31,7 +33,7 @@ export const ChessBoard = ({
 
     if (from) {
       const move = { from, to: squareCoords };
-      socket?.send(JSON.stringify({ type: MOVE, move }));
+      socket.send(JSON.stringify({ type: MOVE, move, playerId: user?.id }));
       setFrom(null); // Reset `from` after sending the move
     } else {
       if (square !== null) {
