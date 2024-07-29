@@ -29,6 +29,12 @@ export class GameManager {
       console.log("game manager message: ", message);
 
       if (message.type === INIT_GAME) {
+        const existingGame = this.games.find(
+          (game) =>
+            game.blackPlayer.userSocket == socket ||
+            game.blackPlayer.userSocket == socket
+        );
+
         const user = new User(socket, message.playerId);
         this.users.push(user);
         if (this.pendingUser) {
@@ -48,10 +54,12 @@ export class GameManager {
             game.blackPlayer.playerId === message.playerId
         );
 
+        console.log(this.games);
+
         console.log(game?.id);
 
         if (game) {
-          game.makeMove(message.move);
+          game.makeMove(socket, message.move);
         }
       }
     });

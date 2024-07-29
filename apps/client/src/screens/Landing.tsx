@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { INIT_GAME } from "@/constants/messages";
 import { useAuth } from "@/context/authContext";
 import { useSocket } from "@/context/socketContext";
+import { useModal } from "@/store";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -10,9 +11,10 @@ export const Landing = () => {
   const socket = useSocket();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { openModal } = useModal();
 
   const handlePlay = () => {
-    console.log(socket);
+    if (!user) return openModal("login");
 
     setIsFinding(true);
     socket?.send(JSON.stringify({ type: INIT_GAME, playerId: user?.id }));

@@ -3,6 +3,7 @@ import { Chess } from "chess.js";
 import { GAME_OVER, INIT_GAME, MOVE } from "../constants/messages";
 import { User } from "./User";
 import { randomUUID } from "crypto";
+import { GameStatus } from "@prisma/client";
 
 export class Game {
   id: string;
@@ -10,10 +11,12 @@ export class Game {
   public blackPlayer: User;
   private board: Chess;
   private startTime: Date;
+  public status: GameStatus;
 
   constructor(whitePlayer: User, blackPlayer: User) {
     const id = randomUUID();
     this.id = id;
+    this.status = "IN_PROGRESS";
     this.whitePlayer = whitePlayer;
     this.blackPlayer = blackPlayer;
     this.board = new Chess();
@@ -26,7 +29,16 @@ export class Game {
     );
   }
 
-  makeMove(move: { from: string; to: string }) {
+  makeMove(userSocket: WebSocket, move: { from: string; to: string }) {
+    if (
+      (this.board.turn() === "b" &&
+        this.blackPlayer.userSocket != userSocket) ||
+      (this.board.turn() === "w" && this.whitePlayer.userSocket != userSocket)
+    ) {
+      console.log("invalid player");
+      return;
+    }
+
     try {
       this.board.move(move);
     } catch (error) {
@@ -34,8 +46,13 @@ export class Game {
       return;
     }
 
+    if (this.board.isCheckmate()) {
+      console.log("checkmate");
+      return;
+    }
+
     if (this.board.isGameOver()) {
-      this.whitePlayer.userSocket.emit(
+      this.whitePlayer.userSocket.send(
         JSON.stringify({
           type: GAME_OVER,
           payload: {
@@ -44,7 +61,7 @@ export class Game {
         })
       );
 
-      this.blackPlayer.userSocket.emit(
+      this.blackPlayer.userSocket.send(
         JSON.stringify({
           type: GAME_OVER,
           payload: {
