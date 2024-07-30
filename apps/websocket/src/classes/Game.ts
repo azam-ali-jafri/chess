@@ -9,9 +9,10 @@ export class Game {
   id: string;
   public whitePlayer: User;
   public blackPlayer: User;
-  private board: Chess;
-  private startTime: Date;
+  public board: Chess;
+  public startTime: Date;
   public status: GameStatus;
+  public moves: { from: string; to: string }[];
 
   constructor(whitePlayer: User, blackPlayer: User) {
     const id = randomUUID();
@@ -21,6 +22,8 @@ export class Game {
     this.blackPlayer = blackPlayer;
     this.board = new Chess();
     this.startTime = new Date();
+    this.moves = [];
+
     this.whitePlayer.userSocket.send(
       JSON.stringify({ type: INIT_GAME, color: "white", gameId: id })
     );
@@ -29,7 +32,7 @@ export class Game {
     );
   }
 
-  makeMove(userSocket: WebSocket, move: { from: string; to: string }) {
+  public makeMove(userSocket: WebSocket, move: { from: string; to: string }) {
     if (
       (this.board.turn() === "b" &&
         this.blackPlayer.userSocket != userSocket) ||
@@ -46,12 +49,15 @@ export class Game {
       return;
     }
 
-    if (this.board.isCheckmate()) {
-      console.log("checkmate");
-      return;
-    }
-
     if (this.board.isGameOver()) {
+      this.whitePlayer.userSocket.send(
+        JSON.stringify({ type: MOVE, payload: move })
+      );
+
+      this.blackPlayer.userSocket.send(
+        JSON.stringify({ type: MOVE, payload: move })
+      );
+
       this.whitePlayer.userSocket.send(
         JSON.stringify({
           type: GAME_OVER,
@@ -69,12 +75,17 @@ export class Game {
           },
         })
       );
+
+      this.status = "COMPLETED";
+
       return;
     }
 
     // if (this.board.moves().length % 2 === 0) {
     //   this.playerBlack.send(JSON.stringify({ type: MOVE, payload: move }));
     // } else this.playerWhite.send(JSON.stringify({ type: MOVE, payload: move }));
+
+    this.moves.push(move);
 
     this.whitePlayer.userSocket.send(
       JSON.stringify({ type: MOVE, payload: move })

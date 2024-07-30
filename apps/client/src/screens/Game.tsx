@@ -1,24 +1,23 @@
 import { ChessBoard } from "../components/chessboard";
-// import { useSocket } from "../hooks/useSocket";
-import { GAME_OVER, MOVE } from "../constants/messages";
+import { GAME_OVER, MOVE, SEED_MOVES } from "../constants/messages";
 import { useEffect, useMemo, useState } from "react";
 import { Chess } from "chess.js";
-import { useNavigate } from "react-router-dom";
-// import { useAuth } from "@/context/authContext";
-// import { Button } from "@/components/ui/button";
+import { useNavigate, useParams } from "react-router-dom";
 import { useSocket } from "@/context/socketContext";
+import { useModal } from "@/store";
 
 export const Game = () => {
+  const { gameId } = useParams();
   const navigate = useNavigate();
   const socket = useSocket();
-  // const { user } = useAuth();
+
   const chess = useMemo(() => new Chess(), []);
   const [board, setBoard] = useState(chess.board());
   const moveSound = useMemo(() => new Audio("/sounds/move.mp3"), []);
   const [playerColor, setPlayerColor] = useState<"black" | "white" | null>(
     null
   );
-  // const [gameStarted, setGameStarted] = useState(false);
+  const { openModal } = useModal();
 
   useEffect(() => {
     if (!socket) {
@@ -33,6 +32,15 @@ export const Game = () => {
       console.log("Received message:", message);
 
       switch (message.type) {
+        case SEED_MOVES: {
+          const moves = message?.moves;
+
+          for (const move of moves) {
+            chess.move(move);
+          }
+          setBoard(chess.board());
+          break;
+        }
         case MOVE: {
           const move = message.payload;
           console.log("Received move:", move);
@@ -42,6 +50,8 @@ export const Game = () => {
           break;
         }
         case GAME_OVER: {
+          const winner: "black" | "white" = message.payload.winner;
+          openModal("game-over", { winningPlayer: winner });
           console.log("Game over message received");
           break;
         }
@@ -50,7 +60,7 @@ export const Game = () => {
         }
       }
     };
-  }, [socket, chess, moveSound]);
+  }, [socket, chess, moveSound, openModal]);
 
   useEffect(() => {
     const color = localStorage.getItem("color");
@@ -59,7 +69,9 @@ export const Game = () => {
     } else {
       setPlayerColor(color);
     }
-  }, [navigate]);
+
+    socket?.send(JSON.stringify({ type: SEED_MOVES, gameId }));
+  }, [gameId, navigate, socket]);
 
   if (!socket) return <>CONNECTING...</>;
 
@@ -70,19 +82,7 @@ export const Game = () => {
           <ChessBoard board={board} socket={socket} playerColor={playerColor} />
         </div>
       </div>
-      <div className="col-span-3 lg:col-span-2 h-full bg-[#28282B]">
-        {/* {!gameStarted && (
-          <Button
-            onClick={() => {
-              socket?.send(
-                JSON.stringify({ type: INIT_GAME, playerId: user?.id })
-              );
-            }}
-          >
-            Play
-          </Button>
-        )} */}
-      </div>
+      <div className="col-span-3 lg:col-span-2 h-full bg-[#28282B]"></div>
     </div>
   );
 };

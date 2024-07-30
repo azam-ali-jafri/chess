@@ -1,17 +1,21 @@
 import { create } from "zustand";
 
-type ModalType = null | "login";
+type ModalType = null | "login" | "game-over";
+
+interface ModalData {
+  winningPlayer: "black" | "white" | null;
+}
 
 interface ModalStore {
-  data: unknown;
+  data: ModalData;
   currentModal: ModalType;
   isOpen: boolean;
-  openModal: (type: ModalType, modalData?: unknown) => void;
+  openModal: (type: ModalType, modalData?: ModalData) => void;
   closeModal: () => void;
 }
 
 export const useModal = create<ModalStore>((set) => ({
-  data: null,
+  data: { winningPlayer: null },
   currentModal: null,
   isOpen: false,
   openModal: (type, modalData) =>
