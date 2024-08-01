@@ -33,7 +33,9 @@ export const ChessBoard = ({
 
     if (from) {
       const move = { from, to: squareCoords };
-      socket.send(JSON.stringify({ type: MOVE, move, playerId: user?.id }));
+      socket.send(
+        JSON.stringify({ type: MOVE, payload: { move, playerId: user?.id } })
+      );
       setFrom(null); // Reset `from` after sending the move
     } else {
       if (square !== null) {

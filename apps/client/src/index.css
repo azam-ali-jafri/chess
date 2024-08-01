@@ -73,3 +73,28 @@ body {
   height: 100%;
   font-family: "Poppins";
 }
+
+/* For WebKit browsers (Chrome, Safari) */
+::-webkit-scrollbar {
+  width: 4px; /* Width of the scrollbar */
+}
+
+::-webkit-scrollbar-track {
+  background: #2c2c2c; /* Background color of the scrollbar track */
+  border-radius: 8px; /* Slightly rounded corners */
+}
+
+::-webkit-scrollbar-thumb {
+  background: #444; /* Color of the scrollbar thumb (handle) */
+  border-radius: 8px; /* Slightly rounded corners */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #666; /* Color of the scrollbar thumb on hover */
+}
+
+/* For Firefox */
+html {
+  scrollbar-width: thin; /* Make the scrollbar thin */
+  scrollbar-color: #444 #2c2c2c; /* Thumb color and track color */
+}

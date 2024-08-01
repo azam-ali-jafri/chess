@@ -28,18 +28,17 @@ export class GameManager {
       const message = JSON.parse(data.toString());
 
       if (message.type === INIT_GAME) {
+        const playerId = message.payload.playerId;
         const existingGame = this.games.find(
           (game) =>
-            (game.blackPlayer.playerId == message.playerId ||
-              game.whitePlayer.playerId == message.playerId) &&
+            (game.blackPlayer.playerId == playerId ||
+              game.whitePlayer.playerId == playerId) &&
             game.status == "IN_PROGRESS"
         );
 
         if (existingGame) {
           const playerColor =
-            existingGame?.blackPlayer?.playerId == message?.playerId
-              ? "b"
-              : "w";
+            existingGame?.blackPlayer?.playerId == playerId ? "b" : "w";
           const index = this.games.findIndex(
             (game) => game.id === existingGame?.id
           );
@@ -65,8 +64,10 @@ export class GameManager {
           socket.send(
             JSON.stringify({
               type: INIT_GAME,
-              color: playerColor == "b" ? "black" : "white",
-              gameId: existingGame?.id,
+              payload: {
+                color: playerColor == "b" ? "black" : "white",
+                gameId: existingGame?.id,
+              },
             })
           );
 
@@ -79,12 +80,12 @@ export class GameManager {
           return;
         }
 
-        const user = new User(socket, message.playerId);
+        const user = new User(socket, playerId);
         this.users.push(user);
+
         if (this.pendingUser) {
           const newgame = new Game(this.pendingUser, user);
           this.games.push(newgame);
-
           this.pendingUser = null;
         } else {
           this.pendingUser = user;
@@ -92,25 +93,30 @@ export class GameManager {
       }
 
       if (message.type === MOVE) {
+        const payload = message.payload;
         const game = this.games.find(
           (game) =>
-            (game.whitePlayer.playerId === message.playerId ||
-              game.blackPlayer.playerId === message.playerId) &&
+            (game.whitePlayer.playerId === payload.playerId ||
+              game.blackPlayer.playerId === payload.playerId) &&
             game.status === "IN_PROGRESS"
         );
 
         if (game) {
-          game.makeMove(socket, message.move);
+          game.makeMove(socket, payload.move);
         }
       }
 
       if (message.type === SEED_MOVES) {
-        const game = this.games.find((game) => game.id == message?.gameId);
+        const game = this.games.find(
+          (game) => game.id == message?.payload.gameId
+        );
+
+        const moves = game?.moves;
 
         socket.send(
           JSON.stringify({
             type: SEED_MOVES,
-            moves: game?.moves,
+            payload: { moves },
           })
         );
       }

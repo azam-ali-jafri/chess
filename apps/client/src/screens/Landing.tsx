@@ -17,7 +17,9 @@ export const Landing = () => {
     if (!user) return openModal("login");
 
     setIsFinding(true);
-    socket?.send(JSON.stringify({ type: INIT_GAME, playerId: user?.id }));
+    socket?.send(
+      JSON.stringify({ type: INIT_GAME, payload: { playerId: user?.id } })
+    );
   };
 
   useEffect(() => {
@@ -27,8 +29,8 @@ export const Landing = () => {
         console.log(message);
 
         if (message.type == INIT_GAME) {
-          localStorage.setItem("color", message.color);
-          navigate(`/game/${message?.gameId}`);
+          localStorage.setItem("color", message?.payload?.color);
+          navigate(`/game/${message?.payload?.gameId}`);
         }
       };
     }

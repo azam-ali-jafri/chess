@@ -24,7 +24,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const checkLoggedIn = async () => {
     try {
-      const response = await axios.get("/api/user/info");
+      const response = await axios.get("/api/my/info");
       setUser(response.data.user);
       setIsAuthenticated(true);
     } catch (error) {

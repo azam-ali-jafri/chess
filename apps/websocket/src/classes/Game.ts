@@ -12,7 +12,7 @@ export class Game {
   public board: Chess;
   public startTime: Date;
   public status: GameStatus;
-  public moves: { from: string; to: string }[];
+  public moves: { from: string; to: string; player: "b" | "w" }[];
 
   constructor(whitePlayer: User, blackPlayer: User) {
     const id = randomUUID();
@@ -25,10 +25,16 @@ export class Game {
     this.moves = [];
 
     this.whitePlayer.userSocket.send(
-      JSON.stringify({ type: INIT_GAME, color: "white", gameId: id })
+      JSON.stringify({
+        type: INIT_GAME,
+        payload: { color: "white", gameId: id },
+      })
     );
     this.blackPlayer.userSocket.send(
-      JSON.stringify({ type: INIT_GAME, color: "black", gameId: id })
+      JSON.stringify({
+        type: INIT_GAME,
+        payload: { color: "black", gameId: id },
+      })
     );
   }
 
@@ -51,11 +57,11 @@ export class Game {
 
     if (this.board.isGameOver()) {
       this.whitePlayer.userSocket.send(
-        JSON.stringify({ type: MOVE, payload: move })
+        JSON.stringify({ type: MOVE, payload: { move } })
       );
 
       this.blackPlayer.userSocket.send(
-        JSON.stringify({ type: MOVE, payload: move })
+        JSON.stringify({ type: MOVE, payload: { move } })
       );
 
       this.whitePlayer.userSocket.send(
@@ -85,13 +91,18 @@ export class Game {
     //   this.playerBlack.send(JSON.stringify({ type: MOVE, payload: move }));
     // } else this.playerWhite.send(JSON.stringify({ type: MOVE, payload: move }));
 
-    this.moves.push(move);
+    const formattedMove = {
+      ...move,
+      player: (this.board.turn() === "b" ? "w" : "b") as "b" | "w",
+    };
+
+    this.moves.push(formattedMove);
 
     this.whitePlayer.userSocket.send(
-      JSON.stringify({ type: MOVE, payload: move })
+      JSON.stringify({ type: MOVE, payload: { move: formattedMove } })
     );
     this.blackPlayer.userSocket.send(
-      JSON.stringify({ type: MOVE, payload: move })
+      JSON.stringify({ type: MOVE, payload: { move: formattedMove } })
     );
   }
 }
