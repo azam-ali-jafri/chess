@@ -18,7 +18,7 @@ export const ChessBoard = ({
   playerColor,
 }: {
   board: (SquarePresentation | null)[][];
-  socket: WebSocket;
+  socket: WebSocket | null;
   playerColor: "black" | "white" | null;
 }) => {
   const [from, setFrom] = useState<Square | null>(null);
@@ -33,7 +33,7 @@ export const ChessBoard = ({
 
     if (from) {
       const move = { from, to: squareCoords };
-      socket.send(
+      socket?.send(
         JSON.stringify({ type: MOVE, payload: { move, playerId: user?.id } })
       );
       setFrom(null); // Reset `from` after sending the move

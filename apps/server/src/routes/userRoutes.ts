@@ -17,7 +17,7 @@ router.get("/my/info", authenticateJwt, async (req, res) => {
 router.get("/user/info/:userId", authenticateJwt, async (req, res) => {
   const { userId } = req.params;
 
-  const user = db.user.findUnique({ where: { id: userId } });
+  const user = await db.user.findUnique({ where: { id: userId } });
 
   if (!user) return res.json({ message: "user not found" }).status(404);
 
