@@ -1,9 +1,11 @@
 import { ChessBoard } from "../components/chessboard";
 import {
   GAME_OVER,
+  INIT_GAME,
   MOVE,
   OPPONENT_ID,
   SEED_MOVES,
+  TIMER_UPDATE,
 } from "../constants/messages";
 import { useEffect, useMemo, useState } from "react";
 import { Chess } from "chess.js";
@@ -30,6 +32,8 @@ export const Game = () => {
   const [playerColor, setPlayerColor] = useState<"black" | "white" | null>(
     null
   );
+  const [whiteTimer, setWhiteTimer] = useState<number>(600);
+  const [blackTimer, setBlackTimer] = useState<number>(600);
 
   const moveSound = useMemo(() => new Audio("/sounds/move.mp3"), []);
 
@@ -61,11 +65,11 @@ export const Game = () => {
           const moves = message?.payload?.moves;
 
           if (moves) {
-            setMoves(moves.reverse());
             for (const move of moves) {
               chess.move({ from: move.from, to: move.to });
             }
             setBoard(chess.board());
+            setMoves(moves.reverse());
           }
 
           break;
@@ -77,6 +81,12 @@ export const Game = () => {
           setBoard(chess.board());
           moveSound.play();
           setMoves((prev) => [move, ...prev]);
+          break;
+        }
+        case TIMER_UPDATE: {
+          const { whiteTimer, blackTimer } = message.payload;
+          setWhiteTimer(whiteTimer);
+          setBlackTimer(blackTimer);
           break;
         }
         case GAME_OVER: {
@@ -95,6 +105,10 @@ export const Game = () => {
         }
       }
     };
+
+    return () => {
+      socket.onmessage = null;
+    };
   }, [socket, chess, moveSound, openModal]);
 
   useEffect(() => {
@@ -104,6 +118,10 @@ export const Game = () => {
     } else {
       setPlayerColor(color);
     }
+
+    socket?.send(
+      JSON.stringify({ type: INIT_GAME, payload: { playerId: user?.id } })
+    );
 
     socket?.send(JSON.stringify({ type: SEED_MOVES, payload: { gameId } }));
 
@@ -115,9 +133,11 @@ export const Game = () => {
     );
   }, [gameId, navigate, socket, user?.id]);
 
-  useEffect(() => {}, []);
-
-  // if (!socket) return alert("connecting...");
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${minutes}:${secs < 10 ? "0" : ""}${secs}`;
+  };
 
   return (
     <div className="grid grid-cols-4 w-full lg:w-4/5 mx-auto gap-y-10 lg:gap-y-0 items-center">
@@ -125,11 +145,16 @@ export const Game = () => {
         <div className="flex gap-4 items-center">
           <img
             src={opponent?.displayPicture as string}
-            alt="my-image"
+            alt="opponent-image"
             className="size-8 object-cover"
           />
           <span className="text-sm text-white">
             {opponentLoading ? "Loading" : opponent?.name}
+          </span>
+          <span className="text-white font-bold">
+            {playerColor == "white"
+              ? formatTime(blackTimer)
+              : formatTime(whiteTimer)}
           </span>
         </div>
         <div
@@ -140,10 +165,15 @@ export const Game = () => {
         <div className="flex gap-4 items-center">
           <img
             src={user?.displayPicture as string}
-            alt="my-image"
+            alt="user-image"
             className="size-8 object-cover"
           />
           <span className="text-sm text-white"> {user?.name}</span>
+          <span className="text-white font-bold">
+            {playerColor === "white"
+              ? formatTime(whiteTimer)
+              : formatTime(blackTimer)}
+          </span>
         </div>
       </div>
       <div className="col-span-3 lg:col-span-2 h-full max-h-[calc(100vh-15rem)] bg-[#28282B]">

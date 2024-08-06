@@ -19,13 +19,14 @@ export class GameManager {
     this.users = [];
   }
 
-  addUser(user: WebSocket) {
-    // this.users.push(user);
-    this.addHandler(user);
+  addUser(userSocket: WebSocket, playerId: string) {
+    const user = new User(userSocket, playerId);
+    this.users.push(user);
+    this.addHandler(userSocket);
   }
 
   removeUser(socket: WebSocket) {
-    this.users = this.users.filter((user) => user.userSocket != socket);
+    this.users = this.users.filter((user) => user.userSocket !== socket);
   }
 
   private addHandler(socket: WebSocket) {
@@ -33,120 +34,124 @@ export class GameManager {
       const message = JSON.parse(data.toString());
 
       switch (message.type) {
-        case INIT_GAME: {
-          const playerId = message.payload.playerId;
-          const existingGame = this.games.find(
-            (game) =>
-              (game.blackPlayer.playerId == playerId ||
-                game.whitePlayer.playerId == playerId) &&
-              game.status == "IN_PROGRESS"
-          );
-
-          if (existingGame) {
-            const playerColor =
-              existingGame?.blackPlayer?.playerId == playerId ? "b" : "w";
-            const index = this.games.findIndex(
-              (game) => game.id === existingGame?.id
-            );
-
-            let updatedData = {};
-
-            if (playerColor == "b") {
-              updatedData = {
-                blackPlayer: {
-                  ...this.games[index].blackPlayer,
-                  userSocket: socket,
-                },
-              };
-            } else {
-              updatedData = {
-                whitePlayer: {
-                  ...this.games[index].whitePlayer,
-                  userSocket: socket,
-                },
-              };
-            }
-
-            socket.send(
-              JSON.stringify({
-                type: INIT_GAME,
-                payload: {
-                  color: playerColor == "b" ? "black" : "white",
-                  gameId: existingGame?.id,
-                },
-              })
-            );
-
-            this.games[index] = {
-              ...this.games[index],
-              ...updatedData,
-              makeMove: this.games[index].makeMove,
-            };
-
-            return;
-          }
-
-          const user = new User(socket, playerId);
-          this.users.push(user);
-
-          if (this.pendingUser) {
-            const newgame = new Game(this.pendingUser, user);
-            this.games.push(newgame);
-            this.pendingUser = null;
-          } else {
-            this.pendingUser = user;
-          }
+        case INIT_GAME:
+          this.handleInitGame(socket, message.payload.playerId);
           break;
-        }
-        case MOVE: {
-          const payload = message.payload;
-          const game = this.games.find(
-            (game) =>
-              (game.whitePlayer.playerId === payload.playerId ||
-                game.blackPlayer.playerId === payload.playerId) &&
-              game.status === "IN_PROGRESS"
-          );
-
-          if (game) {
-            game.makeMove(socket, payload.move);
-          }
+        case MOVE:
+          this.handleMove(socket, message.payload);
           break;
-        }
-
-        case SEED_MOVES: {
-          const game = this.games.find(
-            (game) => game.id == message?.payload.gameId
-          );
-
-          const moves = game?.moves;
-
-          socket.send(
-            JSON.stringify({
-              type: SEED_MOVES,
-              payload: { moves },
-            })
-          );
-
+        case SEED_MOVES:
+          this.handleSeedMoves(socket, message.payload.gameId);
           break;
-        }
-
-        case OPPONENT_ID: {
-          const payload = message?.payload;
-          const playerId = payload?.playerId;
-          const gameId = payload?.gameId;
-
-          const game = this.games.find((game) => game.id == gameId);
-
-          const opponentId =
-            game?.whitePlayer?.playerId == playerId
-              ? game?.blackPlayer.playerId
-              : game?.whitePlayer.playerId;
-
-          socket.send(
-            JSON.stringify({ type: OPPONENT_ID, payload: { opponentId } })
-          );
-        }
+        case OPPONENT_ID:
+          this.handleOpponentId(socket, message.payload);
+          break;
+        default:
+          console.log("Unknown message type:", message.type);
       }
     });
+  }
+
+  private handleInitGame(socket: WebSocket, playerId: string) {
+    const existingGame = this.findExistingGame(playerId);
+
+    if (existingGame) {
+      this.reconnectToExistingGame(socket, playerId, existingGame);
+      return;
+    }
+
+    const user = new User(socket, playerId);
+
+    if (this.pendingUser) {
+      const newGame = new Game(this.pendingUser, user);
+      this.games.push(newGame);
+      this.pendingUser = null;
+    } else {
+      this.pendingUser = user;
+    }
+  }
+
+  private handleMove(
+    socket: WebSocket,
+    payload: { playerId: string; move: { from: string; to: string } }
+  ) {
+    const game = this.findGameByPlayerId(payload.playerId);
+
+    if (game) {
+      game.makeMove(socket, payload.move);
+    }
+  }
+
+  private handleSeedMoves(socket: WebSocket, gameId: string) {
+    const game = this.findGameById(gameId);
+
+    if (game) {
+      socket.send(
+        JSON.stringify({ type: SEED_MOVES, payload: { moves: game.moves } })
+      );
+    }
+  }
+
+  private handleOpponentId(
+    socket: WebSocket,
+    payload: { playerId: string; gameId: string }
+  ) {
+    const game = this.findGameById(payload.gameId);
+
+    if (game) {
+      const opponentId =
+        game.whitePlayer.playerId === payload.playerId
+          ? game.blackPlayer.playerId
+          : game.whitePlayer.playerId;
+      socket.send(
+        JSON.stringify({ type: OPPONENT_ID, payload: { opponentId } })
+      );
+    }
+  }
+
+  private findExistingGame(playerId: string): Game | undefined {
+    return this.games.find(
+      (game) =>
+        (game.whitePlayer.playerId === playerId ||
+          game.blackPlayer.playerId === playerId) &&
+        game.status === "IN_PROGRESS"
+    );
+  }
+
+  private reconnectToExistingGame(
+    socket: WebSocket,
+    playerId: string,
+    game: Game
+  ) {
+    const playerColor = game.whitePlayer.playerId === playerId ? "w" : "b";
+    const updatedPlayer =
+      playerColor === "w"
+        ? { whitePlayer: { ...game.whitePlayer, userSocket: socket } }
+        : { blackPlayer: { ...game.blackPlayer, userSocket: socket } };
+
+    Object.assign(game, updatedPlayer);
+
+    socket.send(
+      JSON.stringify({
+        type: INIT_GAME,
+        payload: {
+          color: playerColor === "w" ? "white" : "black",
+          gameId: game.id,
+        },
+      })
+    );
+  }
+
+  private findGameByPlayerId(playerId: string): Game | undefined {
+    return this.games.find(
+      (game) =>
+        (game.whitePlayer.playerId === playerId ||
+          game.blackPlayer.playerId === playerId) &&
+        game.status === "IN_PROGRESS"
+    );
+  }
+
+  private findGameById(gameId: string): Game | undefined {
+    return this.games.find((game) => game.id === gameId);
   }
 }
