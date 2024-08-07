@@ -1,3 +1,4 @@
+import { useDrag, useDrop } from "react-dnd";
 import { Color, PieceSymbol, Square } from "chess.js";
 import { useState } from "react";
 import { MOVE } from "../constants/messages";
@@ -6,20 +7,109 @@ import { useAuth } from "@/context/authContext";
 const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
 const ranks = ["1", "2", "3", "4", "5", "6", "7", "8"];
 
+type PlayerColor = "white" | "black" | null;
+
 interface SquarePresentation {
   square: Square;
   type: PieceSymbol;
   color: Color;
 }
 
-export const ChessBoard = ({
+interface DraggablePieceProps {
+  type: PieceSymbol;
+  color: Color;
+  position: string;
+  playerColor: PlayerColor;
+}
+
+interface DroppableSquareProps {
+  i: number;
+  j: number;
+  square: SquarePresentation | null;
+  handleSquareClick: (
+    i: number,
+    j: number,
+    square: SquarePresentation | null
+  ) => void;
+  movePiece: (from: string, to: string) => void;
+  playerColor: PlayerColor;
+}
+
+interface ChessBoardProps {
+  board: (SquarePresentation | null)[][];
+  socket: WebSocket | null;
+  playerColor: PlayerColor;
+}
+
+const ItemTypes = {
+  PIECE: "piece",
+};
+
+const DraggablePiece: React.FC<DraggablePieceProps> = ({
+  type,
+  color,
+  position,
+  playerColor,
+}) => {
+  const [, drag] = useDrag(() => ({
+    type: ItemTypes.PIECE,
+    item: { type, color, position },
+    collect: (monitor) => ({
+      isDragging: !!monitor.isDragging(),
+    }),
+  }));
+
+  return (
+    <img
+      ref={drag}
+      src={`/pieces/${color}-${type}.png`}
+      alt={`${color}-${type}`}
+      className={`size-full object-cover ${playerColor == "black" && "rotate-180"}`}
+    />
+  );
+};
+
+const DroppableSquare: React.FC<DroppableSquareProps> = ({
+  i,
+  j,
+  square,
+  handleSquareClick,
+  movePiece,
+  playerColor,
+}) => {
+  const [{ isOver }, drop] = useDrop(() => ({
+    accept: ItemTypes.PIECE,
+    drop: (item: { position: string }) =>
+      movePiece(item.position, files[j] + ranks[7 - i]),
+    collect: (monitor) => ({
+      isOver: !!monitor.isOver(),
+    }),
+  }));
+
+  return (
+    <div
+      ref={drop}
+      onClick={() => handleSquareClick(i, j, square)}
+      className={`size-16 relative flex items-center justify-center ${
+        (i + j) % 2 === 0 ? "bg-[#E8F1CE]" : "bg-[#739552]"
+      } ${isOver ? ((i + j) % 2 === 0 ? "bg-[#c0d67d]" : "bg-[#91c162]") : ""}`}
+    >
+      {square ? (
+        <DraggablePiece
+          type={square.type}
+          color={square.color}
+          position={files[j] + ranks[7 - i]}
+          playerColor={playerColor}
+        />
+      ) : null}
+    </div>
+  );
+};
+
+export const ChessBoard: React.FC<ChessBoardProps> = ({
   board,
   socket,
   playerColor,
-}: {
-  board: (SquarePresentation | null)[][];
-  socket: WebSocket | null;
-  playerColor: "black" | "white" | null;
 }) => {
   const [from, setFrom] = useState<Square | null>(null);
   const { user } = useAuth();
@@ -46,8 +136,11 @@ export const ChessBoard = ({
     }
   };
 
-  const getImageSrc = (type: PieceSymbol, color: Color) => {
-    return `/pieces/${color}-${type}.png`;
+  const movePiece = (from: string, to: string) => {
+    const move = { from, to };
+    socket?.send(
+      JSON.stringify({ type: MOVE, payload: { move, playerId: user?.id } })
+    );
   };
 
   return (
@@ -56,33 +149,15 @@ export const ChessBoard = ({
         {board.map((row, i) => (
           <div key={i} className="flex">
             {row.map((square, j) => (
-              <div
+              <DroppableSquare
                 key={j}
-                onClick={() => handleSquareClick(i, j, square)}
-                className={`size-16 relative flex items-center justify-center ${
-                  (i + j) % 2 === 0 ? "bg-[#E8F1CE]" : "bg-[#739552]"
-                }`}
-              >
-                {/* <div
-                  className={`absolute text-xs font-medium ${
-                    i === 7 && "bottom-1 right-1"
-                  } ${j === 0 && "top-1 left-1"} ${
-                    (i + j) % 2 !== 0 ? "text-[#E8F1CE]" : "text-[#739552]"
-                  }`}
-                >
-                  {i === 7 && files[j]}
-                  {j === 0 && ranks[7 - i]}
-                </div> */}
-                {square ? (
-                  <img
-                    src={getImageSrc(square.type, square.color)}
-                    alt={`${square.color}-${square.type}`}
-                    className={`size-full object-cover ${
-                      playerColor === "black" && "rotate-180"
-                    }`}
-                  />
-                ) : null}
-              </div>
+                i={i}
+                j={j}
+                square={square}
+                handleSquareClick={handleSquareClick}
+                movePiece={movePiece}
+                playerColor={playerColor}
+              />
             ))}
           </div>
         ))}

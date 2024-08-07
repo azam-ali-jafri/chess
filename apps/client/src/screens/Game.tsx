@@ -119,9 +119,10 @@ export const Game = () => {
       setPlayerColor(color);
     }
 
-    socket?.send(
-      JSON.stringify({ type: INIT_GAME, payload: { playerId: user?.id } })
-    );
+    if (user?.id)
+      socket?.send(
+        JSON.stringify({ type: INIT_GAME, payload: { playerId: user?.id } })
+      );
 
     socket?.send(JSON.stringify({ type: SEED_MOVES, payload: { gameId } }));
 

@@ -55,10 +55,16 @@ export class GameManager {
   private handleInitGame(socket: WebSocket, playerId: string) {
     const existingGame = this.findExistingGame(playerId);
 
+    console.log(!!existingGame, existingGame?.id);
+
     if (existingGame) {
+      console.log("in existing game");
+
       this.reconnectToExistingGame(socket, playerId, existingGame);
       return;
     }
+
+    console.log("after existing game");
 
     const user = new User(socket, playerId);
 
