@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { ModalProvider } from "./modalProvider";
+import { ModalProvider } from "./modal-provider";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { SocketProvider } from "@/context/socketContext";

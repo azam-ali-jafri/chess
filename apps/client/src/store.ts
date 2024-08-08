@@ -1,13 +1,19 @@
 import { create } from "zustand";
 
-type ModalType = null | "login" | "game-over";
+type ModalType = null | "login" | "game-over" | "promotion";
+
+type playerColor = "black" | "white";
 
 interface ModalData {
-  winningPlayer: "black" | "white" | null;
+  winningPlayer?: playerColor;
+  playerColor?: playerColor;
+  setPromotionPiece?: React.Dispatch<
+    React.SetStateAction<"b" | "q" | "r" | "n">
+  >;
 }
 
 interface ModalStore {
-  data: ModalData;
+  data: ModalData | null;
   currentModal: ModalType;
   isOpen: boolean;
   openModal: (type: ModalType, modalData?: ModalData) => void;
@@ -15,7 +21,7 @@ interface ModalStore {
 }
 
 export const useModal = create<ModalStore>((set) => ({
-  data: { winningPlayer: null },
+  data: {},
   currentModal: null,
   isOpen: false,
   openModal: (type, modalData) =>

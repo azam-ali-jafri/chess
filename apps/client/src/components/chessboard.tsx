@@ -1,8 +1,10 @@
 import { useDrag, useDrop } from "react-dnd";
-import { Color, PieceSymbol, Square } from "chess.js";
+import { Chess, Color, PieceSymbol, Square } from "chess.js";
 import { useState } from "react";
 import { MOVE } from "../constants/messages";
 import { useAuth } from "@/context/authContext";
+import { isPromotion } from "@/lib/utils";
+import { useModal } from "@/store";
 
 const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
 const ranks = ["1", "2", "3", "4", "5", "6", "7", "8"];
@@ -39,6 +41,7 @@ interface ChessBoardProps {
   board: (SquarePresentation | null)[][];
   socket: WebSocket | null;
   playerColor: PlayerColor;
+  chess: Chess;
 }
 
 const ItemTypes = {
@@ -110,9 +113,14 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
   board,
   socket,
   playerColor,
+  chess,
 }) => {
   const [from, setFrom] = useState<Square | null>(null);
   const { user } = useAuth();
+  const { openModal } = useModal();
+  const [promotionPiece, setPromotionPiece] = useState<
+    "q" | "r" | "b" | "n" | null
+  >(null);
 
   const handleSquareClick = (
     i: number,
@@ -120,9 +128,22 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
     square: SquarePresentation | null
   ) => {
     const squareCoords = files[j] + ranks[7 - i]; // Calculate the square coordinates
-
     if (from) {
-      const move = { from, to: squareCoords };
+      const move: {
+        from: Square;
+        to: Square;
+        promotion?: "b" | "n" | "r" | "q" | null;
+      } = { from, to: squareCoords as Square };
+      if (isPromotion(chess, move) && !promotionPiece) {
+        openModal("promotion", {
+          playerColor: playerColor!,
+          setPromotionPiece: setPromotionPiece as never,
+        });
+      }
+
+      move.promotion = promotionPiece;
+      console.log(move);
+
       socket?.send(
         JSON.stringify({ type: MOVE, payload: { move, playerId: user?.id } })
       );

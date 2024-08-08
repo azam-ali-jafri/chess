@@ -58,7 +58,8 @@ export const Game = () => {
 
     socket.onmessage = (event) => {
       const message = JSON.parse(event.data);
-      console.log("Received message:", message);
+      if (message.type != TIMER_UPDATE)
+        console.log("Received message:", message);
 
       switch (message.type) {
         case SEED_MOVES: {
@@ -161,7 +162,12 @@ export const Game = () => {
         <div
           className={`${playerColor === "black" && "rotate-180 self-start"}`}
         >
-          <ChessBoard board={board} socket={socket} playerColor={playerColor} />
+          <ChessBoard
+            board={board}
+            socket={socket}
+            playerColor={playerColor}
+            chess={chess}
+          />
         </div>
         <div className="flex gap-4 items-center">
           <img
