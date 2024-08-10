@@ -9,7 +9,7 @@ import {
 } from "../constants/messages";
 import { User } from "./User";
 import { randomUUID } from "crypto";
-import { GameStatus } from "@prisma/client";
+import { GameStatus, PrismaClient } from "@prisma/client";
 
 export class Game {
   id: string;
@@ -31,8 +31,8 @@ export class Game {
     this.board = new Chess();
     this.startTime = new Date();
     this.moves = [];
-    this.whiteTimer = 600;
-    this.blackTimer = 600;
+    this.whiteTimer = 10000;
+    this.blackTimer = 10000;
     this.currentPlayer = this.whitePlayer;
 
     this.whitePlayer.userSocket.send(
@@ -129,7 +129,8 @@ export class Game {
     }
 
     try {
-      this.board.move(move);
+      this.board.move(move).piece;
+      console.log(piece);
     } catch (error) {
       console.log(error);
       return;
@@ -138,6 +139,7 @@ export class Game {
     const formattedMove = {
       ...move,
       player: (this.board.turn() === "b" ? "w" : "b") as "b" | "w",
+      piece: piece.type,
     };
 
     this.moves.push(formattedMove);
@@ -169,6 +171,12 @@ export class Game {
           winner,
         },
       })
+    );
+  }
+
+  public exitGame(exitingPlayerId: string) {
+    this.endGame(
+      this.blackPlayer.playerId == exitingPlayerId ? "white" : "black"
     );
   }
 }

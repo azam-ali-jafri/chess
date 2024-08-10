@@ -1,5 +1,7 @@
+import { PrismaClient } from "@prisma/client";
 import { WebSocket } from "ws";
 import {
+  EXIT_GAME,
   INIT_GAME,
   MOVE,
   OPPONENT_ID,
@@ -7,6 +9,7 @@ import {
 } from "../constants/messages";
 import { Game } from "./Game";
 import { User } from "./User";
+import { Square } from "chess.js";
 
 export class GameManager {
   private games: Game[];
@@ -46,25 +49,29 @@ export class GameManager {
         case OPPONENT_ID:
           this.handleOpponentId(socket, message.payload);
           break;
+        case EXIT_GAME:
+          this.handleExitGame(message.payload.playerId);
+          break;
         default:
           console.log("Unknown message type:", message.type);
       }
     });
   }
 
+  private handleExitGame(playerId: string) {
+    const game = this.findExistingGame(playerId);
+    if (!game) return;
+
+    game.exitGame(playerId);
+  }
+
   private handleInitGame(socket: WebSocket, playerId: string) {
     const existingGame = this.findExistingGame(playerId);
 
-    console.log(!!existingGame, existingGame?.id);
-
     if (existingGame) {
-      console.log("in existing game");
-
       this.reconnectToExistingGame(socket, playerId, existingGame);
       return;
     }
-
-    console.log("after existing game");
 
     const user = new User(socket, playerId);
 
@@ -79,7 +86,10 @@ export class GameManager {
 
   private handleMove(
     socket: WebSocket,
-    payload: { playerId: string; move: { from: string; to: string } }
+    payload: {
+      playerId: string;
+      move: { from: Square; to: Square; promotion?: string };
+    }
   ) {
     const game = this.findGameByPlayerId(payload.playerId);
 

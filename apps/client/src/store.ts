@@ -1,15 +1,14 @@
+import { Square } from "chess.js";
 import { create } from "zustand";
 
-type ModalType = null | "login" | "game-over" | "promotion";
+type ModalType = null | "login" | "game-over" | "promotion" | "confirm-modal";
 
-type playerColor = "black" | "white";
+type PlayerColor = "black" | "white";
 
 interface ModalData {
-  winningPlayer?: playerColor;
-  playerColor?: playerColor;
-  setPromotionPiece?: React.Dispatch<
-    React.SetStateAction<"b" | "q" | "r" | "n">
-  >;
+  winningPlayer?: string | null;
+  playerColor?: PlayerColor;
+  move?: { from: Square; to: Square; promotion?: string | null };
 }
 
 interface ModalStore {

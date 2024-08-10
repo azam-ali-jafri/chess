@@ -1,11 +1,16 @@
 import { useModal } from "@/store";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { useAuth } from "@/context/authContext";
+import { useSocket } from "@/context/socketContext";
+import { MOVE } from "@/constants/messages";
 
 export const PromotionModal = () => {
   const { isOpen, currentModal, closeModal, data } = useModal();
   const open = isOpen && currentModal == "promotion";
   const playerColor = data?.playerColor == "black" ? "b" : "w";
-  const setPromotionPiece = data?.setPromotionPiece;
+  const move = data?.move;
+  const { user } = useAuth();
+  const socket = useSocket();
 
   if (!open) return null;
 
@@ -22,8 +27,15 @@ export const PromotionModal = () => {
               alt={`${playerColor}`}
               className={`size-20 object-cover cursor-pointer`}
               onClick={() => {
-                setPromotionPiece &&
-                  setPromotionPiece(piece as "b" | "q" | "r" | "n");
+                socket?.send(
+                  JSON.stringify({
+                    type: MOVE,
+                    payload: {
+                      move: { ...move, promotion: piece },
+                      playerId: user?.id,
+                    },
+                  })
+                );
                 closeModal();
               }}
             />

@@ -1,6 +1,6 @@
 import { useDrag, useDrop } from "react-dnd";
 import { Chess, Color, PieceSymbol, Square } from "chess.js";
-import { useState } from "react";
+import { memo, useState } from "react";
 import { MOVE } from "../constants/messages";
 import { useAuth } from "@/context/authContext";
 import { isPromotion } from "@/lib/utils";
@@ -33,8 +33,10 @@ interface DroppableSquareProps {
     j: number,
     square: SquarePresentation | null
   ) => void;
-  movePiece: (from: string, to: string) => void;
+  movePiece: (from: Square, to: Square) => void;
   playerColor: PlayerColor;
+  isLegalMove: boolean;
+  isBeingSelected: boolean;
 }
 
 interface ChessBoardProps {
@@ -67,7 +69,7 @@ const DraggablePiece: React.FC<DraggablePieceProps> = ({
       ref={drag}
       src={`/pieces/${color}-${type}.png`}
       alt={`${color}-${type}`}
-      className={`size-full object-cover ${playerColor == "black" && "rotate-180"}`}
+      className={`size-full object-cover ${playerColor == "black" ? "rotate-180" : "rotate-0"}`}
     />
   );
 };
@@ -79,11 +81,13 @@ const DroppableSquare: React.FC<DroppableSquareProps> = ({
   handleSquareClick,
   movePiece,
   playerColor,
+  isLegalMove,
+  isBeingSelected,
 }) => {
   const [{ isOver }, drop] = useDrop(() => ({
     accept: ItemTypes.PIECE,
     drop: (item: { position: string }) =>
-      movePiece(item.position, files[j] + ranks[7 - i]),
+      movePiece(item.position as Square, (files[j] + ranks[7 - i]) as Square),
     collect: (monitor) => ({
       isOver: !!monitor.isOver(),
     }),
@@ -95,8 +99,11 @@ const DroppableSquare: React.FC<DroppableSquareProps> = ({
       onClick={() => handleSquareClick(i, j, square)}
       className={`size-16 relative flex items-center justify-center ${
         (i + j) % 2 === 0 ? "bg-[#E8F1CE]" : "bg-[#739552]"
-      } ${isOver ? ((i + j) % 2 === 0 ? "bg-[#c0d67d]" : "bg-[#91c162]") : ""}`}
+      } ${isBeingSelected ? ((i + j) % 2 === 0 ? "bg-[#fff35f]" : "bg-[#d3ff4e]") : ""} ${isOver && "border-2 border-gray-400"}`}
     >
+      {isLegalMove && (
+        <div className={`size-4 inset-0 bg-gray-400 rounded-full`} />
+      )}
       {square ? (
         <DraggablePiece
           type={square.type}
@@ -109,80 +116,97 @@ const DroppableSquare: React.FC<DroppableSquareProps> = ({
   );
 };
 
-export const ChessBoard: React.FC<ChessBoardProps> = ({
-  board,
-  socket,
-  playerColor,
-  chess,
-}) => {
-  const [from, setFrom] = useState<Square | null>(null);
-  const { user } = useAuth();
-  const { openModal } = useModal();
-  const [promotionPiece, setPromotionPiece] = useState<
-    "q" | "r" | "b" | "n" | null
-  >(null);
+export const ChessBoard: React.FC<ChessBoardProps> = memo(
+  ({ board, socket, playerColor, chess }) => {
+    const [from, setFrom] = useState<Square | null>(null);
+    const { user } = useAuth();
+    const { openModal } = useModal();
 
-  const handleSquareClick = (
-    i: number,
-    j: number,
-    square: SquarePresentation | null
-  ) => {
-    const squareCoords = files[j] + ranks[7 - i]; // Calculate the square coordinates
-    if (from) {
-      const move: {
-        from: Square;
-        to: Square;
-        promotion?: "b" | "n" | "r" | "q" | null;
-      } = { from, to: squareCoords as Square };
-      if (isPromotion(chess, move) && !promotionPiece) {
-        openModal("promotion", {
-          playerColor: playerColor!,
-          setPromotionPiece: setPromotionPiece as never,
-        });
-      }
+    const [legalMoves, setLegalMoves] = useState<string[]>([]);
 
-      move.promotion = promotionPiece;
-      console.log(move);
+    const handleSquareClick = (
+      i: number,
+      j: number,
+      square: SquarePresentation | null
+    ) => {
+      const squareCoords = files[j] + ranks[7 - i]; // Calculate the square coordinates
+      if (from) {
+        const move: {
+          from: Square;
+          to: Square;
+          promotion?: string | null;
+        } = { from, to: squareCoords as Square };
+        if (isPromotion(chess, move)) {
+          openModal("promotion", {
+            playerColor: playerColor!,
+            move: move,
+          });
+        } else {
+          socket?.send(
+            JSON.stringify({
+              type: MOVE,
+              payload: { move, playerId: user?.id },
+            })
+          );
+        }
 
-      socket?.send(
-        JSON.stringify({ type: MOVE, payload: { move, playerId: user?.id } })
-      );
-      setFrom(null); // Reset `from` after sending the move
-    } else {
-      if (square !== null) {
-        setFrom(square.square); // Set `from` to the clicked square
+        setLegalMoves([]);
+        setFrom(null); // Reset `from` after sending the move
       } else {
-        return;
+        if (square !== null) {
+          console.log(chess.moves({ square: square.square }));
+
+          setLegalMoves(chess.moves({ square: square.square }));
+          setFrom(square.square); // Set `from` to the clicked square
+        } else {
+          return;
+        }
       }
-    }
-  };
+    };
 
-  const movePiece = (from: string, to: string) => {
-    const move = { from, to };
-    socket?.send(
-      JSON.stringify({ type: MOVE, payload: { move, playerId: user?.id } })
-    );
-  };
+    const movePiece = (from: Square, to: Square) => {
+      const move = { from, to };
+      if (isPromotion(chess, move)) {
+        openModal("promotion", { playerColor: playerColor!, move });
+      } else {
+        socket?.send(
+          JSON.stringify({ type: MOVE, payload: { move, playerId: user?.id } })
+        );
+      }
+    };
 
-  return (
-    <div className="text-white">
-      <div className="flex flex-col">
-        {board.map((row, i) => (
-          <div key={i} className="flex">
-            {row.map((square, j) => (
-              <DroppableSquare
-                key={j}
-                i={i}
-                j={j}
-                square={square}
-                handleSquareClick={handleSquareClick}
-                movePiece={movePiece}
-                playerColor={playerColor}
-              />
-            ))}
-          </div>
-        ))}
+    return (
+      <div className="text-white">
+        <div className="flex flex-col">
+          {board.map((row, i) => (
+            <div key={i} className="flex">
+              {row.map((square, j) => {
+                const squareValue = (files[j] + ranks[7 - i]) as Square;
+
+                return (
+                  <DroppableSquare
+                    key={j}
+                    i={i}
+                    j={j}
+                    square={square}
+                    handleSquareClick={handleSquareClick}
+                    movePiece={movePiece}
+                    playerColor={playerColor}
+                    isLegalMove={
+                      !!legalMoves.find((move) => {
+                        return move.length == 3
+                          ? move.substring(1) == squareValue
+                          : move == squareValue;
+                      })
+                    }
+                    isBeingSelected={from == squareValue}
+                  />
+                );
+              })}
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
-  );
-};
+    );
+  }
+);

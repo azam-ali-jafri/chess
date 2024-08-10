@@ -90,11 +90,11 @@ body {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #666; /* Color of the scrollbar thumb on hover */
+  background: white; /* Color of the scrollbar thumb on hover */
 }
 
 /* For Firefox */
 html {
   scrollbar-width: thin; /* Make the scrollbar thin */
-  scrollbar-color: #444 #2c2c2c; /* Thumb color and track color */
+  scrollbar-color: white; /* Thumb color and track color */
 }

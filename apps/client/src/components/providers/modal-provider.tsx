@@ -1,3 +1,4 @@
+import { ConfirmModal } from "../models/confirm-modal";
 import { GameOverModal } from "../models/gameover-modal";
 import { LoginModal } from "../models/login-modal";
 import { PromotionModal } from "../models/promotion-modal";
@@ -8,6 +9,7 @@ export const ModalProvider = () => {
       <LoginModal />
       <GameOverModal />
       <PromotionModal />
+      <ConfirmModal />
     </>
   );
 };

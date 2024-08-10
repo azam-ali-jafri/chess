@@ -5,6 +5,7 @@ const SEED_MOVES = "seed-moves";
 const OPPONENT_ID = "opponent-id";
 const TIMER_UPDATE = "timer-update";
 const PROMOTION_REQUIRED = "promotion-required";
+const EXIT_GAME = "exit-game";
 
 export {
   INIT_GAME,
@@ -14,4 +15,5 @@ export {
   OPPONENT_ID,
   TIMER_UPDATE,
   PROMOTION_REQUIRED,
+  EXIT_GAME,
 };

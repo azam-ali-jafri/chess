@@ -12,10 +12,12 @@ import { Chess } from "chess.js";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSocket } from "@/context/socketContext";
 import { useModal } from "@/store";
-import { MoveRight } from "lucide-react";
 import { useAuth } from "@/context/authContext";
 import axios from "axios";
 import { User } from "@prisma/client";
+import { Move } from "@/types";
+import { Button } from "@/components/ui/button";
+import { Flag } from "lucide-react";
 
 export const Game = () => {
   const { gameId } = useParams();
@@ -26,9 +28,7 @@ export const Game = () => {
   const [board, setBoard] = useState(chess.board());
   const [opponent, setOpponent] = useState<User | null>(null);
   const [opponentLoading, setOpponentLoading] = useState(true);
-  const [moves, setMoves] = useState<
-    { from: string; to: string; player: "b" | "w" }[]
-  >([]);
+  const [moves, setMoves] = useState<Move[]>([]);
   const [playerColor, setPlayerColor] = useState<"black" | "white" | null>(
     null
   );
@@ -70,7 +70,7 @@ export const Game = () => {
               chess.move({ from: move.from, to: move.to });
             }
             setBoard(chess.board());
-            setMoves(moves.reverse());
+            setMoves(moves);
           }
 
           break;
@@ -78,10 +78,14 @@ export const Game = () => {
         case MOVE: {
           const move = message.payload.move;
           console.log("Received move:", move);
-          chess.move({ from: move.from, to: move.to });
+          chess.move({
+            from: move.from,
+            to: move.to,
+            promotion: move.promotion,
+          });
           setBoard(chess.board());
           moveSound.play();
-          setMoves((prev) => [move, ...prev]);
+          setMoves((prev) => [...prev, move]);
           break;
         }
         case TIMER_UPDATE: {
@@ -92,7 +96,9 @@ export const Game = () => {
         }
         case GAME_OVER: {
           const winner: "black" | "white" = message.payload.winner;
-          openModal("game-over", { winningPlayer: winner });
+          openModal("game-over", {
+            winningPlayer: winner == playerColor ? user?.name : opponent?.name,
+          });
           console.log("Game over message received");
           break;
         }
@@ -110,7 +116,15 @@ export const Game = () => {
     return () => {
       socket.onmessage = null;
     };
-  }, [socket, chess, moveSound, openModal]);
+  }, [
+    socket,
+    chess,
+    moveSound,
+    openModal,
+    playerColor,
+    user?.name,
+    opponent?.name,
+  ]);
 
   useEffect(() => {
     const color = localStorage.getItem("color");
@@ -184,18 +198,61 @@ export const Game = () => {
         </div>
       </div>
       <div className="col-span-3 lg:col-span-2 h-full max-h-[calc(100vh-15rem)] bg-[#28282B]">
-        <div className="flex flex-col gap-3 px-44 mx-auto p-4 max-h-[calc(100vh-15rem)] overflow-y-auto">
-          {moves.map((move, index) => (
-            <div
-              key={index}
-              className={`flex items-center font-bold justify-between ${move.player == "w" ? "text-white" : "text-[#739552]"}`}
-            >
-              <span>{move.from}</span>
-              <MoveRight />
-              <span>{move.to}</span>
-            </div>
-          ))}
+        <div className="m-4">
+          <Button
+            variant={"secondary"}
+            size={"lg"}
+            className="flex items-center gap-x-2"
+            onClick={() => openModal("confirm-modal")}
+          >
+            <span className="text-lg font-medium">Abort</span>
+
+            <Flag className="size-4" />
+          </Button>
         </div>
+        {moves.length > 0 ? (
+          <div className="flex flex-col gap-3 p-4 max-h-[calc(100vh-20rem)] w-1/2 overflow-y-auto">
+            {moves
+              .reduce((acc: Move[][], move, index) => {
+                if (index % 2 === 0) {
+                  acc.push([move]);
+                } else {
+                  acc[acc.length - 1].push(move);
+                }
+                return acc;
+              }, [])
+              .map((pair, index) => (
+                <div
+                  key={index}
+                  className="flex items-end text-sm font-semibold text-white"
+                >
+                  <span className="w-6 text-right leading-4">{index + 1}.</span>
+                  <div className="flex justify-between w-full ml-4">
+                    <div className="flex items-end gap-x-2">
+                      <img
+                        src={`/pieces/${pair[0].player}-${pair[0].piece}.png`}
+                        className="w-6 h-6 object-contain"
+                      />
+                      <span className="leading-4">{pair[0].to}</span>
+                    </div>
+                    {pair[1] && (
+                      <div className="flex items-center gap-x-2">
+                        <img
+                          src={`/pieces/${pair[1].player}-${pair[1].piece}.png`}
+                          className="w-6 h-6 object-contain"
+                        />
+                        <span className="leading-4">{pair[1].to}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+          </div>
+        ) : (
+          <div className="text-white h-full w-full flex justify-center font-semibold">
+            No moves have been played yet
+          </div>
+        )}
       </div>
     </div>
   );
