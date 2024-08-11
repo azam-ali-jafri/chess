@@ -9,7 +9,7 @@ import {
 } from "../constants/messages";
 import { User } from "./User";
 import { randomUUID } from "crypto";
-import { GameStatus, PrismaClient } from "@prisma/client";
+import { GameStatus, PrismaClient, TimeControl } from "@prisma/client";
 
 export class Game {
   id: string;
@@ -22,8 +22,9 @@ export class Game {
   public whiteTimer: number;
   public blackTimer: number;
   public currentPlayer: User;
+  public timeMode: TimeControl;
 
-  constructor(whitePlayer: User, blackPlayer: User) {
+  constructor(whitePlayer: User, blackPlayer: User, timeMode: TimeControl) {
     this.id = randomUUID();
     this.status = "IN_PROGRESS";
     this.whitePlayer = whitePlayer;
@@ -34,6 +35,7 @@ export class Game {
     this.whiteTimer = 10000;
     this.blackTimer = 10000;
     this.currentPlayer = this.whitePlayer;
+    this.timeMode = timeMode;
 
     this.whitePlayer.userSocket.send(
       JSON.stringify({

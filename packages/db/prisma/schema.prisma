@@ -76,7 +76,6 @@ enum GameResult {
 }
 
 enum TimeControl {
-  CLASSICAL
   RAPID
   BLITZ
   BULLET

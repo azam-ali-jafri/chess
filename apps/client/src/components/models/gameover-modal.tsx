@@ -3,12 +3,16 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Button } from "../ui/button";
+import { useNavigate } from "react-router-dom";
 
 export const GameOverModal = () => {
   const { isOpen, currentModal, closeModal, data } = useModal();
   const open = isOpen && currentModal == "game-over";
+  const navigate = useNavigate();
 
   return (
     <Dialog open={open} onOpenChange={closeModal}>
@@ -17,6 +21,17 @@ export const GameOverModal = () => {
         <DialogDescription className="font-medium text-md text-white">
           {data?.winningPlayer} is the Winner
         </DialogDescription>
+        <DialogFooter>
+          <Button
+            variant={"secondary"}
+            onClick={() => {
+              navigate("/", { replace: true });
+              closeModal();
+            }}
+          >
+            Return to Home
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

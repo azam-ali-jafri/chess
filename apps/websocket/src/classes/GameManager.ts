@@ -22,9 +22,9 @@ export class GameManager {
     this.users = [];
   }
 
-  addUser(userSocket: WebSocket, playerId: string) {
-    const user = new User(userSocket, playerId);
-    this.users.push(user);
+  addUser(userSocket: WebSocket) {
+    // const user = new User(userSocket, playerId);
+    // this.users.push(user);
     this.addHandler(userSocket);
   }
 

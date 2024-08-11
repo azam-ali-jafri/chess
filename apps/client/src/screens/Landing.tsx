@@ -1,10 +1,23 @@
 import { Button } from "@/components/ui/button";
-import { INIT_GAME } from "@/constants/messages";
+import { CANCEL_INIT, INIT_GAME } from "@/constants/messages";
 import { useAuth } from "@/context/authContext";
 import { useSocket } from "@/context/socketContext";
 import { useModal } from "@/store";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ChevronDown, Clock, Rabbit, Zap } from "lucide-react";
+
+const modes = [
+  { label: "Bullet", time: 1, icon: Rabbit },
+  { label: "Blitz", time: 5, icon: Zap },
+  { label: "Rapid", time: 10, icon: Clock },
+];
 
 export const Landing = () => {
   const [isFinding, setIsFinding] = useState(false);
@@ -12,13 +25,17 @@ export const Landing = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { openModal } = useModal();
+  const [timeMode, setTimeMode] = useState(10);
 
   const handlePlay = () => {
     if (!user) return openModal("login");
 
     setIsFinding(true);
     socket?.send(
-      JSON.stringify({ type: INIT_GAME, payload: { playerId: user?.id } })
+      JSON.stringify({
+        type: INIT_GAME,
+        payload: { playerId: user?.id, time: timeMode },
+      })
     );
   };
 
@@ -59,6 +76,52 @@ export const Landing = () => {
         >
           Play Online
         </Button>
+        <div className="flex flex-col gap-y-4">
+          <DropdownMenu>
+            <DropdownMenuTrigger>
+              <Button
+                variant={"secondary"}
+                className="text-xl font-semibold py-7 w-full flex gap-x-4"
+              >
+                {modes.find((mode) => mode.time == timeMode)?.label}
+                <ChevronDown />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-96">
+              {modes.map((mode) => (
+                <DropdownMenuItem
+                  className="w-full"
+                  key={mode.label}
+                  onClick={() => setTimeMode(mode.time)}
+                >
+                  <Button
+                    className="w-full font-seimbold text-lg py-7 flex gap-x-4"
+                    variant={"outline"}
+                  >
+                    {mode.label}
+                    <mode.icon />
+                  </Button>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Button
+            className={`text-xl font-semibold py-7 ${isFinding ? "opacity-100" : "opacity-0"} transition`}
+            variant={"destructive"}
+            onClick={() => {
+              socket?.send(
+                JSON.stringify({
+                  type: CANCEL_INIT,
+                  payload: { playerId: user?.id },
+                })
+              );
+              setIsFinding(false);
+            }}
+          >
+            Cancel Search
+          </Button>
+        </div>
       </div>
     </div>
   );

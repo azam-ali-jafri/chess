@@ -6,6 +6,7 @@ const OPPONENT_ID = "opponent-id";
 const TIMER_UPDATE = "timer-update";
 const PROMOTION_REQUIRED = "promotion-required";
 const EXIT_GAME = "exit-game";
+const CANCEL_INIT = "cancel-init";
 
 export {
   INIT_GAME,
@@ -16,4 +17,5 @@ export {
   TIMER_UPDATE,
   PROMOTION_REQUIRED,
   EXIT_GAME,
+  CANCEL_INIT,
 };
