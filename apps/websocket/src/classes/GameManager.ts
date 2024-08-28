@@ -1,6 +1,7 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, TimeControl } from "@prisma/client";
 import { WebSocket } from "ws";
 import {
+  CANCEL_INIT,
   EXIT_GAME,
   INIT_GAME,
   MOVE,
@@ -11,20 +12,23 @@ import { Game } from "./Game";
 import { User } from "./User";
 import { Square } from "chess.js";
 
+interface PendingUser {
+  user: User;
+  timemode: TimeControl;
+}
+
 export class GameManager {
   private games: Game[];
-  private pendingUser: User | null;
+  private pendingUsers: Map<TimeControl, PendingUser[]>; // Map to hold pending users by time mode
   private users: User[];
 
   constructor() {
     this.games = [];
-    this.pendingUser = null;
+    this.pendingUsers = new Map(); // Initialize the map
     this.users = [];
   }
 
   addUser(userSocket: WebSocket) {
-    // const user = new User(userSocket, playerId);
-    // this.users.push(user);
     this.addHandler(userSocket);
   }
 
@@ -38,7 +42,11 @@ export class GameManager {
 
       switch (message.type) {
         case INIT_GAME:
-          this.handleInitGame(socket, message.payload.playerId);
+          this.handleInitGame(
+            socket,
+            message.payload.playerId,
+            message.payload.timemode
+          );
           break;
         case MOVE:
           this.handleMove(socket, message.payload);
@@ -51,6 +59,9 @@ export class GameManager {
           break;
         case EXIT_GAME:
           this.handleExitGame(message.payload.playerId);
+          break;
+        case CANCEL_INIT:
+          this.cancelGameInit(socket, message.payload.timemode);
           break;
         default:
           console.log("Unknown message type:", message.type);
@@ -65,7 +76,11 @@ export class GameManager {
     game.exitGame(playerId);
   }
 
-  private handleInitGame(socket: WebSocket, playerId: string) {
+  private handleInitGame(
+    socket: WebSocket,
+    playerId: string,
+    timemode: TimeControl
+  ) {
     const existingGame = this.findExistingGame(playerId);
 
     if (existingGame) {
@@ -75,12 +90,19 @@ export class GameManager {
 
     const user = new User(socket, playerId);
 
-    if (this.pendingUser) {
-      const newGame = new Game(this.pendingUser, user);
-      this.games.push(newGame);
-      this.pendingUser = null;
+    const pendingUsersForMode = this.pendingUsers.get(timemode) || [];
+
+    if (pendingUsersForMode.length > 0) {
+      const pendingUser = pendingUsersForMode.shift();
+      if (pendingUser) {
+        const newGame = new Game(pendingUser.user, user, timemode);
+        this.games.push(newGame);
+      }
     } else {
-      this.pendingUser = user;
+      if (!this.pendingUsers.has(timemode)) {
+        this.pendingUsers.set(timemode, []);
+      }
+      this.pendingUsers.get(timemode)!.push({ user, timemode });
     }
   }
 
@@ -169,5 +191,12 @@ export class GameManager {
 
   private findGameById(gameId: string): Game | undefined {
     return this.games.find((game) => game.id === gameId);
+  }
+
+  private cancelGameInit(socket: WebSocket, timemode: TimeControl) {
+    if (this.pendingUsers.has(timemode)) {
+      this.pendingUsers.get(timemode)!.length = 0;
+    }
+    socket.send(JSON.stringify({ type: CANCEL_INIT }));
   }
 }

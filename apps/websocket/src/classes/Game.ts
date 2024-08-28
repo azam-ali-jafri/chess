@@ -10,6 +10,7 @@ import {
 import { User } from "./User";
 import { randomUUID } from "crypto";
 import { GameStatus, PrismaClient, TimeControl } from "@prisma/client";
+import { timeControlMap } from "../constants/timemode";
 
 export class Game {
   id: string;
@@ -32,9 +33,9 @@ export class Game {
     this.board = new Chess();
     this.startTime = new Date();
     this.moves = [];
-    this.whiteTimer = 10000;
-    this.blackTimer = 10000;
-    this.currentPlayer = this.whitePlayer;
+    this.whiteTimer = timeControlMap[timeMode] * 60;
+    this.blackTimer = timeControlMap[timeMode] * 60;
+    this.currentPlayer = whitePlayer;
     this.timeMode = timeMode;
 
     this.whitePlayer.userSocket.send(
@@ -61,7 +62,7 @@ export class Game {
     this.timeInterval = setInterval(() => {
       if (this.status !== "IN_PROGRESS") return;
 
-      if (this.currentPlayer === this.whitePlayer) {
+      if (this.currentPlayer.playerId == this.whitePlayer.playerId) {
         this.whiteTimer--;
       } else {
         this.blackTimer--;
@@ -132,7 +133,7 @@ export class Game {
 
     try {
       this.board.move(move).piece;
-      console.log(piece);
+      // console.log(piece);
     } catch (error) {
       console.log(error);
       return;

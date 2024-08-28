@@ -12,11 +12,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown, Clock, Rabbit, Zap } from "lucide-react";
+import { TimeControl } from "@prisma/client";
 
 const modes = [
-  { label: "Bullet", time: 1, icon: Rabbit },
-  { label: "Blitz", time: 5, icon: Zap },
-  { label: "Rapid", time: 10, icon: Clock },
+  { label: "Bullet", value: "BULLET", icon: Rabbit },
+  { label: "Blitz", value: "BLITZ", icon: Zap },
+  { label: "Rapid", value: "RAPID", icon: Clock },
 ];
 
 export const Landing = () => {
@@ -25,7 +26,7 @@ export const Landing = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { openModal } = useModal();
-  const [timeMode, setTimeMode] = useState(10);
+  const [timeMode, setTimeMode] = useState<TimeControl>("RAPID");
 
   const handlePlay = () => {
     if (!user) return openModal("login");
@@ -34,7 +35,7 @@ export const Landing = () => {
     socket?.send(
       JSON.stringify({
         type: INIT_GAME,
-        payload: { playerId: user?.id, time: timeMode },
+        payload: { playerId: user?.id, timemode: timeMode },
       })
     );
   };
@@ -48,6 +49,10 @@ export const Landing = () => {
         if (message.type == INIT_GAME) {
           localStorage.setItem("color", message?.payload?.color);
           navigate(`/game/${message?.payload?.gameId}`);
+        }
+
+        if (message.type == CANCEL_INIT) {
+          setIsFinding(false);
         }
       };
     }
@@ -83,7 +88,7 @@ export const Landing = () => {
                 variant={"secondary"}
                 className="text-xl font-semibold py-7 w-full flex gap-x-4"
               >
-                {modes.find((mode) => mode.time == timeMode)?.label}
+                {modes.find((mode) => mode.value == timeMode)?.label}
                 <ChevronDown />
               </Button>
             </DropdownMenuTrigger>
@@ -92,7 +97,7 @@ export const Landing = () => {
                 <DropdownMenuItem
                   className="w-full"
                   key={mode.label}
-                  onClick={() => setTimeMode(mode.time)}
+                  onClick={() => setTimeMode(mode.value as TimeControl)}
                 >
                   <Button
                     className="w-full font-seimbold text-lg py-7 flex gap-x-4"
@@ -113,10 +118,9 @@ export const Landing = () => {
               socket?.send(
                 JSON.stringify({
                   type: CANCEL_INIT,
-                  payload: { playerId: user?.id },
+                  payload: { playerId: user?.id, timemode: timeMode },
                 })
               );
-              setIsFinding(false);
             }}
           >
             Cancel Search
