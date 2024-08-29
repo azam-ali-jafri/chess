@@ -7,7 +7,7 @@ const Navbar = () => {
   const { isAuthenticated, isUserLoading, login, user, logout } = useAuth();
 
   return (
-    <nav className="bg-primary py-4 px-4 md:px-8 lg:px-14 mb-10 h-[4.5rem] border-b-2 border-[#739552]">
+    <nav className="bg-primary py-4 px-4 md:px-8 lg:px-14 mb-10 lg:mb-0 h-[4.5rem] border-b-2 border-[#739552]">
       <div className="container mx-auto flex justify-between items-center">
         <Link to="/" className="text-white font-bold text-xl">
           Chess

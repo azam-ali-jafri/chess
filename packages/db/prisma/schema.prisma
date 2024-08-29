@@ -79,6 +79,7 @@ enum TimeControl {
   RAPID
   BLITZ
   BULLET
+  CLASSIC
 }
 
 enum AuthProvider {

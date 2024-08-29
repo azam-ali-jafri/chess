@@ -5,19 +5,14 @@ import { useSocket } from "@/context/socketContext";
 import { useModal } from "@/store";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { ChevronDown, Clock, Rabbit, Zap } from "lucide-react";
+import { Clock, CoffeeIcon, Rabbit, Zap } from "lucide-react";
 import { TimeControl } from "@prisma/client";
 
 const modes = [
   { label: "Bullet", value: "BULLET", icon: Rabbit },
   { label: "Blitz", value: "BLITZ", icon: Zap },
   { label: "Rapid", value: "RAPID", icon: Clock },
+  { label: "Classic", value: "CLASSIC", icon: CoffeeIcon },
 ];
 
 export const Landing = () => {
@@ -59,14 +54,14 @@ export const Landing = () => {
   }, [navigate, socket]);
 
   return (
-    <div className="grid grid-cols-3 w-full lg:w-4/5 mx-auto gap-y-10 lg:gap-y-0 items-center pb-10 px-5">
-      <div className="relative w-full col-span-3 lg:col-span-2 flex justify-center">
+    <div className="grid grid-cols-4 w-full lg:w-11/12 xl:w-4/5 mx-auto gap-y-10 lg:gap-y-0 items-center pb-10 px-5 h-full">
+      <div className="relative w-full col-span-4 lg:col-span-2 flex justify-center">
         <img
           src={"/board.png"}
-          className="w-full lg:w-[500px] pointer-events-none"
+          className="w-full lg:w-[400px] xl:w-[500px] pointer-events-none"
         />
       </div>
-      <div className="flex flex-col gap-6 col-span-3 lg:col-span-1">
+      <div className="flex flex-col gap-6 col-span-4 lg:col-span-2">
         <h1 className="font-bold text-2xl md:text-4xl lg:text-4xl xl:text-5xl text-white text-center">
           Play Chess Online
         </h1>
@@ -82,37 +77,27 @@ export const Landing = () => {
           Play Online
         </Button>
         <div className="flex flex-col gap-y-4">
-          <DropdownMenu>
-            <DropdownMenuTrigger>
+          <div className="grid grid-cols-2 gap-x-4 lg:gap-x-2 xl:gap-x-4 flex-wrap gap-y-4">
+            {modes.map((mode) => (
               <Button
-                variant={"secondary"}
-                className="text-xl font-semibold py-7 w-full flex gap-x-4"
+                key={mode.value}
+                className={`text-xl font-semibold py-7 flex-1 flex gap-x-4 justify-between ${
+                  timeMode === mode.value
+                    ? "bg-primary text-white border-white border hover:bg-primary/80"
+                    : "bg-gray-200 text-black hover:bg-white  "
+                }`}
+                onClick={() => setTimeMode(mode.value as TimeControl)}
               >
-                {modes.find((mode) => mode.value == timeMode)?.label}
-                <ChevronDown />
+                {mode.label}
+                <mode.icon />
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-96">
-              {modes.map((mode) => (
-                <DropdownMenuItem
-                  className="w-full"
-                  key={mode.label}
-                  onClick={() => setTimeMode(mode.value as TimeControl)}
-                >
-                  <Button
-                    className="w-full font-seimbold text-lg py-7 flex gap-x-4"
-                    variant={"outline"}
-                  >
-                    {mode.label}
-                    <mode.icon />
-                  </Button>
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+            ))}
+          </div>
 
           <Button
-            className={`text-xl font-semibold py-7 ${isFinding ? "opacity-100" : "opacity-0"} transition`}
+            className={`text-xl font-semibold py-7 ${
+              isFinding ? "opacity-100" : "opacity-0"
+            } transition`}
             variant={"destructive"}
             onClick={() => {
               socket?.send(

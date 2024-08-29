@@ -97,7 +97,7 @@ const DroppableSquare: React.FC<DroppableSquareProps> = ({
     <div
       ref={drop}
       onClick={() => handleSquareClick(i, j, square)}
-      className={`size-16 relative flex items-center justify-center ${
+      className={`size-14 lg:size-14 xl:size-16 relative flex items-center justify-center ${
         (i + j) % 2 === 0 ? "bg-[#E8F1CE]" : "bg-[#739552]"
       } ${isBeingSelected ? ((i + j) % 2 === 0 ? "bg-[#fff35f]" : "bg-[#d3ff4e]") : ""} ${isOver && "border-2 border-gray-400"}`}
     >

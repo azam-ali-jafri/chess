@@ -154,6 +154,11 @@ export class Game {
     this.currentPlayer =
       this.board.turn() == "b" ? this.blackPlayer : this.whitePlayer;
 
+    if (this.board.isStalemate()) {
+      this.endGame("none");
+      return;
+    }
+
     if (this.board.isGameOver()) {
       this.endGame(this.board.turn() == "w" ? "black" : "white");
     }
@@ -164,7 +169,7 @@ export class Game {
     this.blackPlayer.userSocket.send(message);
   }
 
-  public endGame(winner: "black" | "white") {
+  public endGame(winner: "black" | "white" | "none") {
     this.status = "COMPLETED";
 
     this.broadcast(

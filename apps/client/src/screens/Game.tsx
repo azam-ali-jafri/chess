@@ -95,9 +95,14 @@ export const Game = () => {
           break;
         }
         case GAME_OVER: {
-          const winner: "black" | "white" = message.payload.winner;
+          const winner: "black" | "white" | "none" = message.payload.winner;
           openModal("game-over", {
-            winningPlayer: winner == playerColor ? user?.name : opponent?.name,
+            winningPlayer:
+              winner == "none"
+                ? "none"
+                : winner == playerColor
+                  ? user?.name
+                  : opponent?.name,
           });
           console.log("Game over message received");
           break;
@@ -156,8 +161,8 @@ export const Game = () => {
   };
 
   return (
-    <div className="grid grid-cols-4 w-full lg:w-4/5 mx-auto gap-y-10 lg:gap-y-0 items-center">
-      <div className="relative w-full col-span-3 lg:col-span-2 justify-center flex flex-col gap-4">
+    <div className="grid grid-cols-4 w-full lg:w-11/12 xl:w-4/5 mx-auto gap-y-10 lg:gap-y-0 items-center">
+      <div className="relative w-full px-2 md:px-0 col-span-4 lg:col-span-2 justify-center flex flex-col gap-4">
         <div className="flex gap-4 items-center">
           <img
             src={opponent?.displayPicture as string}
@@ -197,7 +202,7 @@ export const Game = () => {
           </span>
         </div>
       </div>
-      <div className="col-span-3 lg:col-span-2 h-full max-h-[calc(100vh-15rem)] bg-[#28282B]">
+      <div className="col-span-4 px-2 md:px-0 lg:col-span-2 h-full lg:max-h-[calc(100vh-20rem)] xl:max-h-[calc(100vh-15rem)] bg-[#28282B]">
         <div className="m-4">
           <Button
             variant={"secondary"}
@@ -211,7 +216,7 @@ export const Game = () => {
           </Button>
         </div>
         {moves.length > 0 ? (
-          <div className="flex flex-col gap-3 p-4 max-h-[calc(100vh-20rem)] w-1/2 overflow-y-auto">
+          <div className="flex flex-col gap-3 p-4 lg:max-h-[calc(100vh-25rem)] xl:max-h-[calc(100vh-20rem)] w-1/2 overflow-y-auto">
             {moves
               .reduce((acc: Move[][], move, index) => {
                 if (index % 2 === 0) {

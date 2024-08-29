@@ -69,32 +69,31 @@
 }
 
 :root,
+html,
 body {
   height: 100%;
   font-family: "Poppins";
 }
 
-/* For WebKit browsers (Chrome, Safari) */
 ::-webkit-scrollbar {
-  width: 4px; /* Width of the scrollbar */
+  width: 4px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #2c2c2c; /* Background color of the scrollbar track */
-  border-radius: 8px; /* Slightly rounded corners */
+  background: #2c2c2c;
+  border-radius: 8px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #444; /* Color of the scrollbar thumb (handle) */
-  border-radius: 8px; /* Slightly rounded corners */
+  background: #444;
+  border-radius: 8px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: white; /* Color of the scrollbar thumb on hover */
+  background: white;
 }
 
-/* For Firefox */
 html {
-  scrollbar-width: thin; /* Make the scrollbar thin */
-  scrollbar-color: white; /* Thumb color and track color */
+  scrollbar-width: thin;
+  scrollbar-color: white;
 }

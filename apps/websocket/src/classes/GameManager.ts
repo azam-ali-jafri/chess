@@ -194,6 +194,8 @@ export class GameManager {
   }
 
   private cancelGameInit(socket: WebSocket, timemode: TimeControl) {
+    // console.log("request received");
+
     if (this.pendingUsers.has(timemode)) {
       this.pendingUsers.get(timemode)!.length = 0;
     }

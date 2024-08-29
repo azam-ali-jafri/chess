@@ -7,10 +7,12 @@ const App = () => {
   return (
     <div className="bg-primary h-full">
       <Navbar />
-      <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/game/:gameId" element={<Game />} />
-      </Routes>
+      <div className="h-full bg-primary">
+        <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route path="/game/:gameId" element={<Game />} />
+        </Routes>
+      </div>
     </div>
   );
 };
