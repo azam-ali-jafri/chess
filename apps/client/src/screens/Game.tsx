@@ -161,7 +161,7 @@ export const Game = () => {
   };
 
   return (
-    <div className="grid grid-cols-4 w-full lg:w-11/12 xl:w-4/5 mx-auto gap-y-10 lg:gap-y-0 items-center">
+    <div className="grid grid-cols-4 w-full lg:w-11/12 xl:w-4/5 mx-auto gap-y-10 lg:gap-y-0 items-center mt-4">
       <div className="relative w-full px-2 md:px-0 col-span-4 lg:col-span-2 justify-center flex flex-col gap-4">
         <div className="flex gap-4 items-center">
           <img

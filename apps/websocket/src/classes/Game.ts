@@ -1,5 +1,5 @@
 import { WebSocket } from "ws";
-import { Chess, Piece, Square } from "chess.js";
+import { Chess, Square } from "chess.js";
 import {
   GAME_OVER,
   INIT_GAME,
@@ -9,8 +9,10 @@ import {
 } from "../constants/messages";
 import { User } from "./User";
 import { randomUUID } from "crypto";
-import { GameStatus, PrismaClient, TimeControl } from "@prisma/client";
+import { GameStatus, TimeControl } from "@prisma/client";
 import { timeControlMap } from "../constants/timemode";
+import { PrismaClient } from "@prisma/client";
+import { db } from "../libs/db";
 
 export class Game {
   id: string;
@@ -19,11 +21,14 @@ export class Game {
   public board: Chess;
   public startTime: Date;
   public status: GameStatus;
-  public moves: { from: string; to: string; player: "b" | "w" }[];
+  public moves: { from: string; to: string; player: "b" | "w"; fen: string }[];
   public whiteTimer: number;
   public blackTimer: number;
   public currentPlayer: User;
   public timeMode: TimeControl;
+
+  private queue: (() => Promise<void>)[] = [];
+  private processing = false;
 
   constructor(whitePlayer: User, blackPlayer: User, timeMode: TimeControl) {
     this.id = randomUUID();
@@ -52,9 +57,25 @@ export class Game {
     );
 
     this.startTimer();
+    this.createGame();
   }
 
   public timeInterval: NodeJS.Timeout | null = null;
+
+  private async createGame() {
+    await db.game.create({
+      data: {
+        id: this.id,
+        whitePlayerId: this.whitePlayer.playerId,
+        blackPlayerId: this.blackPlayer.playerId,
+        status: this.status,
+        timeControl: this.timeMode,
+        currentFen: this.board.fen(),
+        whiteTimer: this.whiteTimer,
+        blackTimer: this.blackTimer,
+      },
+    });
+  }
 
   private startTimer() {
     if (this.timeInterval) clearInterval(this.timeInterval);
@@ -80,24 +101,21 @@ export class Game {
 
       if (this.whiteTimer <= 0 || this.blackTimer <= 0) {
         this.status = "COMPLETED";
-        this.whitePlayer.userSocket.send(
-          JSON.stringify({
-            type: GAME_OVER,
-            payload: {
-              winner: this.whiteTimer <= 0 ? "black" : "white",
-            },
-          })
-        );
-        this.blackPlayer.userSocket.send(
-          JSON.stringify({
-            type: GAME_OVER,
-            payload: {
-              winner: this.whiteTimer <= 0 ? "black" : "white",
-            },
-          })
-        );
+        this.updateGameResult(this.whiteTimer <= 0 ? "black" : "white");
       }
     }, 1000);
+  }
+
+  public async processQueue() {
+    if (this.processing) return;
+    this.processing = true;
+
+    while (this.queue.length > 0) {
+      const task = this.queue.shift();
+      if (task) await task();
+    }
+
+    this.processing = false;
   }
 
   public makeMove(
@@ -132,17 +150,17 @@ export class Game {
     }
 
     try {
-      this.board.move(move).piece;
-      // console.log(piece);
+      this.board.move(move);
     } catch (error) {
       console.log(error);
       return;
     }
 
     const formattedMove = {
-      ...move,
+      from: move.from,
+      to: move.to,
       player: (this.board.turn() === "b" ? "w" : "b") as "b" | "w",
-      piece: piece.type,
+      fen: this.board.fen(),
     };
 
     this.moves.push(formattedMove);
@@ -150,6 +168,28 @@ export class Game {
     this.broadcast(
       JSON.stringify({ type: MOVE, payload: { move: formattedMove } })
     );
+
+    this.queue.push(async () => {
+      await db.move.create({
+        data: {
+          gameId: this.id,
+          moveNumber: this.moves.length,
+          from: move.from,
+          to: move.to,
+        },
+      });
+
+      await db.game.update({
+        where: { id: this.id },
+        data: {
+          currentFen: this.board.fen(),
+          whiteTimer: this.whiteTimer,
+          blackTimer: this.blackTimer,
+        },
+      });
+    });
+
+    this.processQueue();
 
     this.currentPlayer =
       this.board.turn() == "b" ? this.blackPlayer : this.whitePlayer;
@@ -169,8 +209,19 @@ export class Game {
     this.blackPlayer.userSocket.send(message);
   }
 
-  public endGame(winner: "black" | "white" | "none") {
-    this.status = "COMPLETED";
+  public async updateGameResult(winner: "black" | "white" | "none") {
+    this.queue.push(async () => {
+      await db.game.update({
+        where: { id: this.id },
+        data: {
+          status: "COMPLETED",
+          result: winner,
+          endAt: new Date(),
+        },
+      });
+    });
+
+    this.processQueue();
 
     this.broadcast(
       JSON.stringify({
@@ -186,5 +237,10 @@ export class Game {
     this.endGame(
       this.blackPlayer.playerId == exitingPlayerId ? "white" : "black"
     );
+  }
+
+  private endGame(winner: "black" | "white" | "none") {
+    this.status = "COMPLETED";
+    this.updateGameResult(winner);
   }
 }

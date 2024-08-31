@@ -37,9 +37,11 @@ model Game {
   currentFen    String?
   startAt       DateTime    @default(now())
   endAt         DateTime?
+  whiteTimer    Int // Time left for white player in seconds
+  blackTimer    Int
   moves         Move[]
-  opening       String?
-  event         String?
+  // opening       String?
+  // event         String?
 
   @@index([status, result])
 }
@@ -51,12 +53,12 @@ model Move {
   moveNumber Int
   from       String
   to         String
-  comments   String?
-  before     String
-  after      String
-  timeTaken  Int?     @default(0)
+  // comments   String?
+  // before     String
+  // after      String
+  // timeTaken  Int?     @default(0)
   createdAt  DateTime @default(now())
-  san        String?
+  // san        String?
 
   @@index([gameId])
 }
@@ -70,9 +72,9 @@ enum GameStatus {
 }
 
 enum GameResult {
-  WHITE_WINS
-  BLACK_WINS
-  DRAW
+  white
+  black
+  none
 }
 
 enum TimeControl {

@@ -84,7 +84,7 @@ export const Landing = () => {
                 className={`text-xl font-semibold py-7 flex-1 flex gap-x-4 justify-between ${
                   timeMode === mode.value
                     ? "bg-primary text-white border-white border hover:bg-primary/80"
-                    : "bg-gray-200 text-black hover:bg-white  "
+                    : "bg-white text-black hover:bg-white/80"
                 }`}
                 onClick={() => setTimeMode(mode.value as TimeControl)}
               >
