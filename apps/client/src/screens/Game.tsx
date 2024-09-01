@@ -7,7 +7,7 @@ import {
   SEED_MOVES,
   TIMER_UPDATE,
 } from "../constants/messages";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Chess } from "chess.js";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSocket } from "@/context/socketContext";
@@ -39,6 +39,16 @@ export const Game = () => {
 
   const { openModal } = useModal();
 
+  const fetchGameMoves = useCallback(async () => {
+    try {
+      const res = await axios.get(`/api/get/game/moves/${gameId}`);
+      setMoves(res.data.moves);
+    } catch (error) {
+      console.log(error);
+      return alert("something went wrong");
+    }
+  }, [gameId]);
+
   const fetchOpponentDetails = async (id: string) => {
     try {
       const res = await axios.get(`/api/user/info/${id}`);
@@ -56,22 +66,24 @@ export const Game = () => {
       return;
     }
 
-    socket.onmessage = (event) => {
+    socket.onmessage = async (event) => {
       const message = JSON.parse(event.data);
       if (message.type != TIMER_UPDATE)
         console.log("Received message:", message);
 
       switch (message.type) {
         case SEED_MOVES: {
-          const moves = message?.payload?.moves;
+          const curFen = message?.payload?.curFen;
 
-          if (moves) {
-            for (const move of moves) {
-              chess.move({ from: move.from, to: move.to });
-            }
-            setBoard(chess.board());
-            setMoves(moves);
-          }
+          // if (moves) {
+          // for (const move of moves) {
+          //   chess.move({ from: move.from, to: move.to });
+          // }
+          chess.load(curFen);
+          setBoard(chess.board());
+          await fetchGameMoves();
+          // setMoves(moves);
+          // }
 
           break;
         }
@@ -129,6 +141,7 @@ export const Game = () => {
     playerColor,
     user?.name,
     opponent?.name,
+    fetchGameMoves,
   ]);
 
   useEffect(() => {

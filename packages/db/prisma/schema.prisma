@@ -34,12 +34,13 @@ model Game {
   result        GameResult?
   timeControl   TimeControl
   startingFen   String      @default("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1") // default value for the startingFen
-  currentFen    String?
+  currentFen    String?     @default("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1") // default value for the startingFen
   startAt       DateTime    @default(now())
   endAt         DateTime?
   whiteTimer    Int // Time left for white player in seconds
   blackTimer    Int
   moves         Move[]
+  currentTurn   String      @default("w")
   // opening       String?
   // event         String?
 

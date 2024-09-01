@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import authRoutes from "./routes/authRoutes";
 import userRoutes from "./routes/userRoutes";
+import moveRoutes from "./routes/movesRoutes";
 import "./config/passport"; // Import the passport configuration
 import cors from "cors";
 import { COOKIE_MAX_AGE } from "./consts";
@@ -35,6 +36,7 @@ app.use(cookieParser());
 
 app.use("/api", authRoutes);
 app.use("/api", userRoutes);
+app.use("/api", moveRoutes);
 
 app.get("/", (req, res) => {
   res.send("this is the home route of the backend");

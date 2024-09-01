@@ -1,4 +1,4 @@
-import { PrismaClient, TimeControl } from "@prisma/client";
+import { TimeControl } from "@prisma/client";
 import { WebSocket } from "ws";
 import {
   CANCEL_INIT,
@@ -11,6 +11,7 @@ import {
 import { Game } from "./Game";
 import { User } from "./User";
 import { Square } from "chess.js";
+import { db } from "../libs/db";
 
 interface PendingUser {
   user: User;
@@ -26,6 +27,30 @@ export class GameManager {
     this.games = [];
     this.pendingUsers = new Map(); // Initialize the map
     this.users = [];
+    this.loadActiveGames();
+  }
+
+  private async loadActiveGames() {
+    const activeGames = await db.game.findMany({
+      where: { status: "IN_PROGRESS" },
+      include: { moves: true },
+    });
+
+    for (const gameData of activeGames) {
+      const whitePlayer = new User(null, gameData.whitePlayerId);
+      const blackPlayer = new User(null, gameData.blackPlayerId);
+
+      const game = new Game(whitePlayer, blackPlayer, gameData.timeControl);
+      game.id = gameData.id;
+      game.status = gameData.status;
+      game.currentPlayer =
+        gameData.currentTurn === "w" ? whitePlayer : blackPlayer;
+      game.whiteTimer = gameData.whiteTimer;
+      game.blackTimer = gameData.blackTimer;
+      game.board.load(gameData.currentFen!);
+
+      this.games.push(game);
+    }
   }
 
   addUser(userSocket: WebSocket) {
@@ -125,7 +150,10 @@ export class GameManager {
 
     if (game) {
       socket.send(
-        JSON.stringify({ type: SEED_MOVES, payload: { moves: game.moves } })
+        JSON.stringify({
+          type: SEED_MOVES,
+          payload: { curFen: game.board.fen() },
+        })
       );
     }
   }

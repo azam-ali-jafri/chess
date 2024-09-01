@@ -7,6 +7,7 @@ const TIMER_UPDATE = "timer-update";
 const PROMOTION_REQUIRED = "promotion-required";
 const EXIT_GAME = "exit-game";
 const CANCEL_INIT = "cancel-init";
+const GAME_NOT_FOUND = "game-not-found";
 
 export {
   INIT_GAME,
@@ -18,4 +19,5 @@ export {
   PROMOTION_REQUIRED,
   EXIT_GAME,
   CANCEL_INIT,
+  GAME_NOT_FOUND,
 };

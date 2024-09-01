@@ -43,13 +43,13 @@ export class Game {
     this.currentPlayer = whitePlayer;
     this.timeMode = timeMode;
 
-    this.whitePlayer.userSocket.send(
+    this.whitePlayer.userSocket?.send(
       JSON.stringify({
         type: INIT_GAME,
         payload: { color: "white", gameId: this.id },
       })
     );
-    this.blackPlayer.userSocket.send(
+    this.blackPlayer.userSocket?.send(
       JSON.stringify({
         type: INIT_GAME,
         payload: { color: "black", gameId: this.id },
@@ -57,12 +57,12 @@ export class Game {
     );
 
     this.startTimer();
-    this.createGame();
+    this.createGameInDB();
   }
 
   public timeInterval: NodeJS.Timeout | null = null;
 
-  private async createGame() {
+  private async createGameInDB() {
     await db.game.create({
       data: {
         id: this.id,
@@ -143,7 +143,7 @@ export class Game {
         (piece.color === "b" && move.to[1] === "1"));
 
     if (isPromotion && !move.promotion) {
-      this.currentPlayer.userSocket.send(
+      this.currentPlayer.userSocket?.send(
         JSON.stringify({ type: PROMOTION_REQUIRED, payload: { move } })
       );
       return;
@@ -185,6 +185,7 @@ export class Game {
           currentFen: this.board.fen(),
           whiteTimer: this.whiteTimer,
           blackTimer: this.blackTimer,
+          currentTurn: this.board.turn(),
         },
       });
     });
@@ -205,8 +206,8 @@ export class Game {
   }
 
   public broadcast(message: any) {
-    this.whitePlayer.userSocket.send(message);
-    this.blackPlayer.userSocket.send(message);
+    this.whitePlayer.userSocket?.send(message);
+    this.blackPlayer.userSocket?.send(message);
   }
 
   public async updateGameResult(winner: "black" | "white" | "none") {
