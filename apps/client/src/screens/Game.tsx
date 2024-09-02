@@ -154,7 +154,7 @@ export const Game = () => {
 
     if (user?.id)
       socket?.send(
-        JSON.stringify({ type: INIT_GAME, payload: { playerId: user?.id } })
+        JSON.stringify({ type: INIT_GAME, payload: { playerId: user.id } })
       );
 
     socket?.send(JSON.stringify({ type: SEED_MOVES, payload: { gameId } }));

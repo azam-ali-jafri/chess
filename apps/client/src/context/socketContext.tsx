@@ -11,21 +11,28 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
   const [socket, setSocket] = useState<WebSocket | null>(null);
 
   useEffect(() => {
-    const ws = new WebSocket(process.env.SOCKET_URL as string);
+    let ws: WebSocket;
 
-    ws.onopen = () => {
-      setSocket(ws);
-      console.log("WebSocket connection opened");
+    const connect = () => {
+      ws = new WebSocket(process.env.SOCKET_URL as string);
+
+      ws.onopen = () => {
+        setSocket(ws);
+        console.log("WebSocket connection opened");
+      };
+
+      ws.onclose = () => {
+        console.log("WebSocket connection closed, retrying in 5 seconds...");
+        setSocket(null);
+        setTimeout(connect, 5000); // Retry connection after 5 seconds
+      };
+
+      ws.onerror = (error) => {
+        console.error("WebSocket error:", error);
+      };
     };
 
-    ws.onclose = () => {
-      console.log("WebSocket connection closed");
-      setSocket(null);
-    };
-
-    ws.onerror = (error) => {
-      console.error("WebSocket error:", error);
-    };
+    connect(); // Establish initial connection
 
     return () => {
       if (
@@ -36,6 +43,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     };
   }, []);
+
   return (
     <SocketContext.Provider value={socket}>{children}</SocketContext.Provider>
   );

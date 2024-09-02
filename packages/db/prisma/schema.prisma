@@ -54,6 +54,8 @@ model Move {
   moveNumber Int
   from       String
   to         String
+  player     String
+  piece      String
   // comments   String?
   // before     String
   // after      String

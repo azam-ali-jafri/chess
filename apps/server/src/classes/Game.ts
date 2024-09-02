@@ -12,7 +12,7 @@ import { randomUUID } from "crypto";
 import { GameStatus, TimeControl } from "@prisma/client";
 import { timeControlMap } from "../constants/timemode";
 import { PrismaClient } from "@prisma/client";
-import { db } from "../libs/db";
+import { db } from "../db/index";
 
 export class Game {
   id: string;
@@ -21,7 +21,7 @@ export class Game {
   public board: Chess;
   public startTime: Date;
   public status: GameStatus;
-  public moves: { from: string; to: string; player: "b" | "w"; fen: string }[];
+  public moves: { from: string; to: string; player: "b" | "w" }[];
   public whiteTimer: number;
   public blackTimer: number;
   public currentPlayer: User;
@@ -160,7 +160,8 @@ export class Game {
       from: move.from,
       to: move.to,
       player: (this.board.turn() === "b" ? "w" : "b") as "b" | "w",
-      fen: this.board.fen(),
+      piece: piece.type,
+      // fen: this.board.fen(),
     };
 
     this.moves.push(formattedMove);
@@ -176,6 +177,8 @@ export class Game {
           moveNumber: this.moves.length,
           from: move.from,
           to: move.to,
+          player: (this.board.turn() === "b" ? "w" : "b") as "b" | "w",
+          piece: piece.type,
         },
       });
 

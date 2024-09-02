@@ -11,7 +11,7 @@ import {
 import { Game } from "./Game";
 import { User } from "./User";
 import { Square } from "chess.js";
-import { db } from "../libs/db";
+import { db } from "../db/index";
 
 interface PendingUser {
   user: User;
