@@ -1,20 +1,25 @@
 import { Router } from "express";
 import { authenticateJwt } from "../middlewares/authMiddleware";
+import { asyncHandler } from "../libs/utilities";
 import { db } from "../db";
 
 const router = Router();
 
-router.get("/get/game/moves/:gameId", authenticateJwt, async (req, res) => {
-  try {
+router.get(
+  "/get/game/moves/:gameId",
+  authenticateJwt,
+  asyncHandler(async (req, res) => {
     const { gameId } = req.params;
 
-    let moves = await db.move.findMany({ where: { gameId } });
+    try {
+      let moves = await db.move.findMany({ where: { gameId } });
 
-    moves = moves.sort((a, b) => a.moveNumber - b.moveNumber);
-    return res.json({ moves });
-  } catch (error) {
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
+      moves = moves.sort((a, b) => a.moveNumber - b.moveNumber);
+      res.json({ moves });
+    } catch (error) {
+      throw new Error("Internal server error");
+    }
+  })
+);
 
 export default router;

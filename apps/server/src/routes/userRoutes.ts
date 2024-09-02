@@ -1,27 +1,42 @@
 import { Router } from "express";
 import { db } from "../db";
 import { authenticateJwt } from "../middlewares/authMiddleware";
+import { asyncHandler } from "../libs/utilities";
 
 const router = Router();
 
-router.get("/my/info", authenticateJwt, async (req, res) => {
-  const user_id = req.user;
+router.get(
+  "/my/info",
+  authenticateJwt,
+  asyncHandler(async (req, res) => {
+    const user_id = req.user as string;
 
-  const user = await db.user.findUnique({ where: { id: user_id as string } });
+    const user = await db.user.findUnique({ where: { id: user_id } });
 
-  if (!user) return res.json({ message: "user not found" }).status(404);
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
 
-  return res.json({ user });
-});
+    res.json({ user });
+  })
+);
 
-router.get("/user/info/:userId", authenticateJwt, async (req, res) => {
-  const { userId } = req.params;
+router.get(
+  "/user/info/:userId",
+  authenticateJwt,
+  asyncHandler(async (req, res) => {
+    const { userId } = req.params;
 
-  const user = await db.user.findUnique({ where: { id: userId } });
+    const user = await db.user.findUnique({ where: { id: userId } });
 
-  if (!user) return res.json({ message: "user not found" }).status(404);
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
 
-  return res.json({ user });
-});
+    res.json({ user });
+  })
+);
 
 export default router;

@@ -19,37 +19,45 @@ interface PendingUser {
 }
 
 export class GameManager {
-  private games: Game[];
-  private pendingUsers: Map<TimeControl, PendingUser[]>; // Map to hold pending users by time mode
-  private users: User[];
+  private games: Game[] = [];
+  private pendingUsers: Map<TimeControl, PendingUser[]> = new Map();
+  private users: User[] = [];
 
   constructor() {
-    this.games = [];
-    this.pendingUsers = new Map(); // Initialize the map
-    this.users = [];
-    this.loadActiveGames();
+    this.loadActiveGames().catch((error) =>
+      console.error("Failed to load active games:", error)
+    );
   }
 
   private async loadActiveGames() {
-    const activeGames = await db.game.findMany({
-      where: { status: "IN_PROGRESS" },
-      include: { moves: true },
-    });
+    try {
+      const activeGames = await db.game.findMany({
+        where: { status: "IN_PROGRESS" },
+        include: { moves: true },
+      });
 
-    for (const gameData of activeGames) {
-      const whitePlayer = new User(null, gameData.whitePlayerId);
-      const blackPlayer = new User(null, gameData.blackPlayerId);
+      for (const gameData of activeGames) {
+        const whitePlayer = new User(null, gameData.whitePlayerId);
+        const blackPlayer = new User(null, gameData.blackPlayerId);
 
-      const game = new Game(whitePlayer, blackPlayer, gameData.timeControl);
-      game.id = gameData.id;
-      game.status = gameData.status;
-      game.currentPlayer =
-        gameData.currentTurn === "w" ? whitePlayer : blackPlayer;
-      game.whiteTimer = gameData.whiteTimer;
-      game.blackTimer = gameData.blackTimer;
-      game.board.load(gameData.currentFen!);
+        const game = new Game(
+          whitePlayer,
+          blackPlayer,
+          gameData.timeControl,
+          false
+        );
+        game.id = gameData.id;
+        game.status = gameData.status;
+        game.currentPlayer =
+          gameData.currentTurn === "w" ? whitePlayer : blackPlayer;
+        game.whiteTimer = gameData.whiteTimer;
+        game.blackTimer = gameData.blackTimer;
+        game.board.load(gameData.currentFen!);
 
-      this.games.push(game);
+        this.games.push(game);
+      }
+    } catch (error) {
+      console.error("Error loading active games:", error);
     }
   }
 
@@ -62,46 +70,50 @@ export class GameManager {
   }
 
   private addHandler(socket: WebSocket) {
-    socket.on("message", (data) => {
+    socket.on("message", async (data) => {
       const message = JSON.parse(data.toString());
 
-      switch (message.type) {
-        case INIT_GAME:
-          this.handleInitGame(
-            socket,
-            message.payload.playerId,
-            message.payload.timemode
-          );
-          break;
-        case MOVE:
-          this.handleMove(socket, message.payload);
-          break;
-        case SEED_MOVES:
-          this.handleSeedMoves(socket, message.payload.gameId);
-          break;
-        case OPPONENT_ID:
-          this.handleOpponentId(socket, message.payload);
-          break;
-        case EXIT_GAME:
-          this.handleExitGame(message.payload.playerId);
-          break;
-        case CANCEL_INIT:
-          this.cancelGameInit(socket, message.payload.timemode);
-          break;
-        default:
-          console.log("Unknown message type:", message.type);
+      try {
+        switch (message.type) {
+          case INIT_GAME:
+            await this.handleInitGame(
+              socket,
+              message.payload.playerId,
+              message.payload.timemode
+            );
+            break;
+          case MOVE:
+            await this.handleMove(socket, message.payload);
+            break;
+          case SEED_MOVES:
+            await this.handleSeedMoves(socket, message.payload.gameId);
+            break;
+          case OPPONENT_ID:
+            await this.handleOpponentId(socket, message.payload);
+            break;
+          case EXIT_GAME:
+            await this.handleExitGame(message.payload.playerId);
+            break;
+          case CANCEL_INIT:
+            await this.cancelGameInit(socket, message.payload.timemode);
+            break;
+          default:
+            console.log("Unknown message type:", message.type);
+        }
+      } catch (error) {
+        console.error("Error handling message:", error);
       }
     });
   }
 
-  private handleExitGame(playerId: string) {
+  private async handleExitGame(playerId: string) {
     const game = this.findExistingGame(playerId);
-    if (!game) return;
-
-    game.exitGame(playerId);
+    if (game) {
+      game.exitGame(playerId);
+    }
   }
 
-  private handleInitGame(
+  private async handleInitGame(
     socket: WebSocket,
     playerId: string,
     timemode: TimeControl
@@ -114,13 +126,12 @@ export class GameManager {
     }
 
     const user = new User(socket, playerId);
-
     const pendingUsersForMode = this.pendingUsers.get(timemode) || [];
 
     if (pendingUsersForMode.length > 0) {
       const pendingUser = pendingUsersForMode.shift();
       if (pendingUser) {
-        const newGame = new Game(pendingUser.user, user, timemode);
+        const newGame = new Game(pendingUser.user, user, timemode, true);
         this.games.push(newGame);
       }
     } else {
@@ -131,7 +142,7 @@ export class GameManager {
     }
   }
 
-  private handleMove(
+  private async handleMove(
     socket: WebSocket,
     payload: {
       playerId: string;
@@ -145,7 +156,7 @@ export class GameManager {
     }
   }
 
-  private handleSeedMoves(socket: WebSocket, gameId: string) {
+  private async handleSeedMoves(socket: WebSocket, gameId: string) {
     const game = this.findGameById(gameId);
 
     if (game) {
@@ -158,7 +169,7 @@ export class GameManager {
     }
   }
 
-  private handleOpponentId(
+  private async handleOpponentId(
     socket: WebSocket,
     payload: { playerId: string; gameId: string }
   ) {
@@ -221,11 +232,9 @@ export class GameManager {
     return this.games.find((game) => game.id === gameId);
   }
 
-  private cancelGameInit(socket: WebSocket, timemode: TimeControl) {
-    // console.log("request received");
-
+  private async cancelGameInit(socket: WebSocket, timemode: TimeControl) {
     if (this.pendingUsers.has(timemode)) {
-      this.pendingUsers.get(timemode)!.length = 0;
+      this.pendingUsers.set(timemode, []);
     }
     socket.send(JSON.stringify({ type: CANCEL_INIT }));
   }

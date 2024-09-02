@@ -11,7 +11,6 @@ import { User } from "./User";
 import { randomUUID } from "crypto";
 import { GameStatus, TimeControl } from "@prisma/client";
 import { timeControlMap } from "../constants/timemode";
-import { PrismaClient } from "@prisma/client";
 import { db } from "../db/index";
 
 export class Game {
@@ -21,7 +20,12 @@ export class Game {
   public board: Chess;
   public startTime: Date;
   public status: GameStatus;
-  public moves: { from: string; to: string; player: "b" | "w" }[];
+  public moves: {
+    from: string;
+    to: string;
+    player: "b" | "w";
+    piece: string;
+  }[];
   public whiteTimer: number;
   public blackTimer: number;
   public currentPlayer: User;
@@ -29,8 +33,14 @@ export class Game {
 
   private queue: (() => Promise<void>)[] = [];
   private processing = false;
+  private timeInterval: NodeJS.Timeout | null = null;
 
-  constructor(whitePlayer: User, blackPlayer: User, timeMode: TimeControl) {
+  constructor(
+    whitePlayer: User,
+    blackPlayer: User,
+    timeMode: TimeControl,
+    createInDB: boolean
+  ) {
     this.id = randomUUID();
     this.status = "IN_PROGRESS";
     this.whitePlayer = whitePlayer;
@@ -43,6 +53,12 @@ export class Game {
     this.currentPlayer = whitePlayer;
     this.timeMode = timeMode;
 
+    this.initPlayers();
+    this.startTimer();
+    if (createInDB) this.createGameInDB();
+  }
+
+  private initPlayers() {
     this.whitePlayer.userSocket?.send(
       JSON.stringify({
         type: INIT_GAME,
@@ -55,26 +71,25 @@ export class Game {
         payload: { color: "black", gameId: this.id },
       })
     );
-
-    this.startTimer();
-    this.createGameInDB();
   }
 
-  public timeInterval: NodeJS.Timeout | null = null;
-
   private async createGameInDB() {
-    await db.game.create({
-      data: {
-        id: this.id,
-        whitePlayerId: this.whitePlayer.playerId,
-        blackPlayerId: this.blackPlayer.playerId,
-        status: this.status,
-        timeControl: this.timeMode,
-        currentFen: this.board.fen(),
-        whiteTimer: this.whiteTimer,
-        blackTimer: this.blackTimer,
-      },
-    });
+    try {
+      await db.game.create({
+        data: {
+          id: this.id,
+          whitePlayerId: this.whitePlayer.playerId,
+          blackPlayerId: this.blackPlayer.playerId,
+          status: this.status,
+          timeControl: this.timeMode,
+          currentFen: this.board.fen(),
+          whiteTimer: this.whiteTimer,
+          blackTimer: this.blackTimer,
+        },
+      });
+    } catch (error) {
+      console.error("Error creating game in DB:", error);
+    }
   }
 
   private startTimer() {
@@ -83,7 +98,7 @@ export class Game {
     this.timeInterval = setInterval(() => {
       if (this.status !== "IN_PROGRESS") return;
 
-      if (this.currentPlayer.playerId == this.whitePlayer.playerId) {
+      if (this.currentPlayer.playerId === this.whitePlayer.playerId) {
         this.whiteTimer--;
       } else {
         this.blackTimer--;
@@ -124,16 +139,16 @@ export class Game {
   ) {
     if (
       (this.board.turn() === "b" &&
-        this.blackPlayer.userSocket != userSocket) ||
-      (this.board.turn() === "w" && this.whitePlayer.userSocket != userSocket)
+        this.blackPlayer.userSocket !== userSocket) ||
+      (this.board.turn() === "w" && this.whitePlayer.userSocket !== userSocket)
     ) {
-      console.log("invalid player");
+      console.log("Invalid player");
       return;
     }
 
     const piece = this.board.get(move.from);
     if (!piece) {
-      console.log("no piece at the source position");
+      console.log("No piece at the source position");
       return;
     }
 
@@ -152,7 +167,7 @@ export class Game {
     try {
       this.board.move(move);
     } catch (error) {
-      console.log(error);
+      console.error("Move error:", error);
       return;
     }
 
@@ -161,7 +176,6 @@ export class Game {
       to: move.to,
       player: (this.board.turn() === "b" ? "w" : "b") as "b" | "w",
       piece: piece.type,
-      // fen: this.board.fen(),
     };
 
     this.moves.push(formattedMove);
@@ -171,32 +185,36 @@ export class Game {
     );
 
     this.queue.push(async () => {
-      await db.move.create({
-        data: {
-          gameId: this.id,
-          moveNumber: this.moves.length,
-          from: move.from,
-          to: move.to,
-          player: (this.board.turn() === "b" ? "w" : "b") as "b" | "w",
-          piece: piece.type,
-        },
-      });
+      try {
+        await db.move.create({
+          data: {
+            gameId: this.id,
+            moveNumber: this.moves.length,
+            from: move.from,
+            to: move.to,
+            player: (this.board.turn() === "b" ? "w" : "b") as "b" | "w",
+            piece: piece.type,
+          },
+        });
 
-      await db.game.update({
-        where: { id: this.id },
-        data: {
-          currentFen: this.board.fen(),
-          whiteTimer: this.whiteTimer,
-          blackTimer: this.blackTimer,
-          currentTurn: this.board.turn(),
-        },
-      });
+        await db.game.update({
+          where: { id: this.id },
+          data: {
+            currentFen: this.board.fen(),
+            whiteTimer: this.whiteTimer,
+            blackTimer: this.blackTimer,
+            currentTurn: this.board.turn(),
+          },
+        });
+      } catch (error) {
+        console.error("Error saving move to DB:", error);
+      }
     });
 
     this.processQueue();
 
     this.currentPlayer =
-      this.board.turn() == "b" ? this.blackPlayer : this.whitePlayer;
+      this.board.turn() === "b" ? this.blackPlayer : this.whitePlayer;
 
     if (this.board.isStalemate()) {
       this.endGame("none");
@@ -204,7 +222,7 @@ export class Game {
     }
 
     if (this.board.isGameOver()) {
-      this.endGame(this.board.turn() == "w" ? "black" : "white");
+      this.endGame(this.board.turn() === "w" ? "black" : "white");
     }
   }
 
@@ -215,14 +233,18 @@ export class Game {
 
   public async updateGameResult(winner: "black" | "white" | "none") {
     this.queue.push(async () => {
-      await db.game.update({
-        where: { id: this.id },
-        data: {
-          status: "COMPLETED",
-          result: winner,
-          endAt: new Date(),
-        },
-      });
+      try {
+        await db.game.update({
+          where: { id: this.id },
+          data: {
+            status: "COMPLETED",
+            result: winner,
+            endAt: new Date(),
+          },
+        });
+      } catch (error) {
+        console.error("Error updating game result in DB:", error);
+      }
     });
 
     this.processQueue();
@@ -239,7 +261,7 @@ export class Game {
 
   public exitGame(exitingPlayerId: string) {
     this.endGame(
-      this.blackPlayer.playerId == exitingPlayerId ? "white" : "black"
+      this.blackPlayer.playerId === exitingPlayerId ? "white" : "black"
     );
   }
 

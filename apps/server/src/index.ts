@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Request, Response, NextFunction } from "express";
 import session from "express-session";
 import passport from "passport";
 import dotenv from "dotenv";
@@ -9,7 +9,7 @@ import moveRoutes from "./routes/movesRoutes";
 import "./config/passport"; // Import the passport configuration
 import cors from "cors";
 import { COOKIE_MAX_AGE } from "./consts";
-import { WebSocketServer } from "ws";
+import { WebSocketServer, WebSocket } from "ws";
 import { GameManager } from "./classes/GameManager";
 
 dotenv.config();
@@ -38,15 +38,23 @@ app.use("/api", authRoutes);
 app.use("/api", userRoutes);
 app.use("/api", moveRoutes);
 
-app.get("/", (req, res) => {
+app.get("/", (req: Request, res: Response) => {
   res.send("this is the home route of the backend");
 });
 
-// Create a server that integrates with both Express and WebSocket
-const server = app.listen(process.env.PORT || 8080, () => {
-  console.log(
-    `Express server is listening on port ${process.env.PORT || 8080}`
-  );
+// Global error handler for Express
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  console.error(err.stack);
+  res.status(500).send("Something went wrong!");
+});
+
+const PORT = process.env.PORT || 8080;
+const server = app.listen(PORT, () => {
+  console.log(`Express server is listening on port ${PORT}`);
+});
+
+server.on("error", (err: Error) => {
+  console.error(`Server error: ${err.message}`);
 });
 
 // Initialize WebSocket server and attach it to the same HTTP server
@@ -54,15 +62,35 @@ const wss = new WebSocketServer({ server });
 
 const gameManager = new GameManager();
 
-wss.on("connection", (ws) => {
-  gameManager.addUser(ws);
+wss.on("connection", (ws: WebSocket) => {
+  try {
+    gameManager.addUser(ws);
 
-  ws.on("message", (message) => {
-    // Handle WebSocket messages here
-    // console.log(`Received message: ${message}`);
-  });
+    ws.on("message", (message: MessageEvent) => {
+      // Handle WebSocket messages here
+      // console.log(`Received message: ${message}`);
+    });
 
-  ws.on("close", () => {
-    gameManager.removeUser(ws);
-  });
+    ws.on("close", () => {
+      gameManager.removeUser(ws);
+    });
+
+    ws.on("error", (error: Error) => {
+      console.error(`WebSocket error: ${error.message}`);
+
+      ws.terminate();
+    });
+  } catch (error) {
+    console.error(`WebSocket connection error: ${(error as Error).message}`);
+    ws.terminate();
+  }
+});
+
+process.on("unhandledRejection", (reason: any, promise: Promise<any>) => {
+  console.error("Unhandled Rejection at:", promise, "reason:", reason);
+});
+
+process.on("uncaughtException", (error: Error) => {
+  console.error("Uncaught Exception thrown:", error);
+  process.exit(1);
 });
