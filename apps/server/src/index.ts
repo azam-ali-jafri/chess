@@ -6,7 +6,7 @@ import cookieParser from "cookie-parser";
 import authRoutes from "./routes/authRoutes";
 import userRoutes from "./routes/userRoutes";
 import moveRoutes from "./routes/movesRoutes";
-import "./config/passport"; // Import the passport configuration
+import "./config/passport"; 
 import cors from "cors";
 import { COOKIE_MAX_AGE } from "./consts";
 import { WebSocketServer, WebSocket } from "ws";
@@ -14,7 +14,6 @@ import { GameManager } from "./classes/GameManager";
 
 dotenv.config();
 
-// Create an Express application
 const app = express();
 
 app.use(cors());
@@ -42,7 +41,6 @@ app.get("/", (req: Request, res: Response) => {
   res.send("this is the home route of the backend");
 });
 
-// Global error handler for Express
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   console.error(err.stack);
   res.status(500).send("Something went wrong!");
@@ -57,7 +55,6 @@ server.on("error", (err: Error) => {
   console.error(`Server error: ${err.message}`);
 });
 
-// Initialize WebSocket server and attach it to the same HTTP server
 const wss = new WebSocketServer({ server });
 
 const gameManager = new GameManager();

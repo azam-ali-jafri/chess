@@ -37,16 +37,14 @@ This project is a real-time multiplayer chess game designed for engaging and com
    npm install
    ```
 
-3. **Prisma generate**
+3. **Generate prisma client**
 
    ```bash
-   cd packages/db
-   npx prisma generate
+   npm run db:generate
    ```
 
 4. **Start development server**
 
    ```bash
-   cd ../..
    turbo run dev
    ```
