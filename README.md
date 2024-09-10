@@ -24,27 +24,27 @@ This project is a real-time multiplayer chess game designed for engaging and com
 
 ### envs
 
-**Client**
-```
-SOCKET_URL=ws://localhost:8080
-```
-
-**Server**
-```
-PORT=3000
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
-SESSION_SECRET=
-CALLBACK_URL=
-JWT_SECRET=
-CLIENT_URL=
-SOCKET_URL=
-```
-
-**DB in packages**
-```
-DATABASE_URL=
-```
+   **Client**
+   ```
+   SOCKET_URL=ws://localhost:8080
+   ```
+   
+   **Server**
+   ```
+   PORT=3000
+   GOOGLE_CLIENT_ID=
+   GOOGLE_CLIENT_SECRET=
+   SESSION_SECRET=
+   CALLBACK_URL=
+   JWT_SECRET=
+   CLIENT_URL=
+   SOCKET_URL=
+   ```
+   
+   **DB in packages**
+   ```
+   DATABASE_URL=
+   ```
 
 ### Installation
 
